@@ -1,46 +1,49 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../config/prisma"; 
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
 
 export const verifyPassword = async (req: Request, res: Response) => {
   try {
     const { token, password } = req.body;
 
-    if (!token || !password)
+    if (!token || !password) {
       return res.status(400).json({ message: "Token dan password wajib diisi" });
+    }
 
-    // cari user berdasarkan verifyToken
+    // Cari user berdasarkan verifyToken
     const user = await prisma.user.findFirst({
       where: { verifyToken: token },
     });
 
-    if (!user)
-      return res.status(400).json({ message: "Token tidak valid atau sudah digunakan" });
+    if (!user) {
+      return res.status(400).json({ message: "Password sudah digunakan" });
+    }
 
-    // hash password baru
+    // Hash password baru
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // update user: hapus verifyToken + set verified
+    // Update user: hapus verifyToken + set verified
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
         verifyToken: null,
+        verifyTokenExpireAt: null,
         isVerified: true,
       },
     });
 
-    // tentukan redirect berdasarkan role
-    const redirect =
-      updatedUser.role === "TENANT"
-        ? "/login/tenant"
-        : "/login/user";
+    // Tentukan redirect berdasarkan role
+    const redirect = updatedUser.role === "TENANT" ? "/login/tenant" : "/login/user";
 
-    // kirim respons tanpa token login
+    // Kirim respons dengan user + redirect
     return res.status(200).json({
       message: "Password berhasil dibuat! Silakan login untuk melanjutkan.",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      },
       redirect,
     });
   } catch (error) {
