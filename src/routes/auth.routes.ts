@@ -1,6 +1,7 @@
 import express from "express";
 import passport from "passport";
-import { register, verifyPassword, googleCallback, facebookCallback, verifyToken } from "../controllers/auth.controller";
+import { register, googleCallback, facebookCallback, verifyToken } from "../controllers/auth.controller";
+import { verifyPassword } from "../controllers/verifypassword.controller";
 
 const router = express.Router();
 
@@ -8,7 +9,9 @@ const router = express.Router();
 // EMAIL REGISTER & VERIFY
 // ============================
 router.post("/register", register);
+router.get("/verify", verifyToken);
 router.post("/verify-password", verifyPassword);
+
 
 // ============================
 // GOOGLE OAUTH
@@ -47,6 +50,6 @@ router.get(
   facebookCallback
 );
 
-router.get("/verify", verifyToken);
+
 
 export default router;
