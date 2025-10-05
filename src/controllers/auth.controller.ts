@@ -116,7 +116,8 @@ export const googleCallback = async (req: Request, res: Response) => {
     }
 
     const email = profile.emails[0].value;
-    const username = profile.displayName?.replace(/\s+/g, "_") || email.split("@")[0];
+    const username =
+      profile.displayName?.replace(/\s+/g, "_") || email.split("@")[0];
 
     // Cek user di DB
     let user = await prisma.user.findUnique({ where: { email } });
@@ -124,18 +125,27 @@ export const googleCallback = async (req: Request, res: Response) => {
     if (!user) {
       // Buat akun baru
       user = await prisma.user.create({
-        data: { email, username, role: roleFromSession, isVerified: true },
+        data: {
+          email,
+          username,
+          role: roleFromSession,
+          isVerified: true,
+        },
       });
     } else {
-      // Email sudah ada
+      // Kalau email sudah ada dan role-nya beda
       if (user.role !== roleFromSession) {
-        const loginPath = user.role === "TENANT" ? "/login/tenant" : "/login/user";
-        return res.redirect(`${loginPath}?error=email_registered`);
+        const loginPath =
+          user.role === "TENANT" ? "/login/tenant" : "/login/user";
+        return res.redirect(
+          `${process.env.FRONTEND_URL}${loginPath}?error=email_registered_with_different_role`
+        );
       }
-    }
-    
 
-    // Generate token
+      // Kalau email sudah ada dan role-nya sama → lanjut login
+    }
+
+    // Generate JWT Token
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       JWT_SECRET,
@@ -168,27 +178,43 @@ export const facebookCallback = async (req: Request, res: Response) => {
     }
 
     const email = profile.emails[0].value;
-    const username = profile.displayName?.replace(/\s+/g, "_") || email.split("@")[0];
+    const username =
+      profile.displayName?.replace(/\s+/g, "_") || email.split("@")[0];
 
+    // Cek user di DB
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       // Buat akun baru
       user = await prisma.user.create({
-        data: { email, username, role: roleFromSession, isVerified: true },
+        data: {
+          email,
+          username,
+          role: roleFromSession,
+          isVerified: true,
+        },
       });
     } else {
-      // Email sudah ada
+      // Kalau email sudah ada dan role-nya beda
       if (user.role !== roleFromSession) {
-        const loginPath = user.role === "TENANT" ? "/login/tenant" : "/login/user";
-        return res.redirect(`${loginPath}?error=email_registered`);
+        const loginPath =
+          user.role === "TENANT" ? "/login/tenant" : "/login/user";
+        return res.redirect(
+          `${process.env.FRONTEND_URL}${loginPath}?error=email_registered_with_different_role`
+        );
       }
+
+      // Kalau email sudah ada dan role-nya sama → lanjut login
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    // Generate JWT Token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
+    // Redirect sesuai role
     const redirectUrl =
       user.role === "TENANT"
         ? `${process.env.FRONTEND_URL}/tenant/dashboard?token=${token}`
@@ -200,7 +226,6 @@ export const facebookCallback = async (req: Request, res: Response) => {
     return res.redirect("/login?error=oauth_failed");
   }
 };
-
 
 // ============================
 // VERIFY TOKEN (CEK LOGIN STATUS)

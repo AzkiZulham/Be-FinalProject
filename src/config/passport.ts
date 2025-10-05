@@ -26,8 +26,8 @@ passport.use(
       profileFields: ["id", "emails", "name", "displayName"],
     },
     (accessToken, refreshToken, profile, done) => {
-      console.log('Access Token:', accessToken);
-      console.log('Refresh Token:', refreshToken);
+      // console.log('Access Token:', accessToken);
+      // console.log('Refresh Token:', refreshToken);
       return done(null, profile);
     }
   )
@@ -35,5 +35,5 @@ passport.use(
 
 export default passport;
 
-console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
-console.log("FACEBOOK_CLIENT_ID:", process.env.FACEBOOK_CLIENT_ID);
+// console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
+// console.log("FACEBOOK_CLIENT_ID:", process.env.FACEBOOK_CLIENT_ID);
