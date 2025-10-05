@@ -4,7 +4,7 @@ CREATE TABLE `users` (
     `role` ENUM('USER', 'TENANT') NOT NULL,
     `username` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
-    `password` VARCHAR(191) NOT NULL,
+    `password` VARCHAR(191) NULL,
     `profileImg` VARCHAR(191) NULL,
     `resetToken` VARCHAR(191) NULL,
     `verifyToken` VARCHAR(191) NULL,
