@@ -37,10 +37,15 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
+<<<<<<< HEAD
     "express-validator": "^7.2.1",
+=======
+    "express-validator": "^6.15.0",
+>>>>>>> PRW-13-User-Registration
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.6",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0"
   }
 }
+
