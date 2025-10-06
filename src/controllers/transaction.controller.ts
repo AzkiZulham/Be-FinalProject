@@ -4,13 +4,8 @@ import { validationResult } from "express-validator";
 
 const prisma = new PrismaClient();
 
-/**
- * Helper: enumerate nightly dates from [checkIn, checkOut)
- * hitung per-malam (end exclusive).
- */
 function enumerateDates(start: Date, end: Date): Date[] {
   const dates: Date[] = [];
-  // Normalisasi ke tanggal (tanpa waktu) agar perbandingan konsisten
   const cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const stop = new Date(end.getFullYear(), end.getMonth(), end.getDate());
   while (cur < stop) {
@@ -20,15 +15,6 @@ function enumerateDates(start: Date, end: Date): Date[] {
   return dates;
 }
 
-/**
- * Hitung total harga + validasi ketersediaan:
- * - Base price: roomTypes.price
- * - Peak season:
- *   - isAvailable = false → tanggal tidak tersedia
- *   - nominal: penambahan harga flat
- *   - percentage: penambahan persentase (dibulatkan)
- * - Cek kuota: existing bookings (WAITING_FOR_CONFIRMATION, ACCEPTED) yang overlap
- */
 async function calcPriceAndValidateAvailability(
   prisma: PrismaClient,
   roomTypeId: number,
@@ -45,7 +31,6 @@ async function calcPriceAndValidateAvailability(
   const nights = enumerateDates(checkIn, checkOut);
   if (nights.length < 1) throw new Error("Durasi minimal 1 malam");
 
-  // Ambil peak-season yang overlap: start < checkOut && end > checkIn
   const peakRules = await prisma.peakSeason.findMany({
     where: {
       roomTypeId,
@@ -61,7 +46,6 @@ async function calcPriceAndValidateAvailability(
     },
   });
 
-  // Ambil transaksi lain yang mengunci kuota (WAITING_FOR_CONFIRMATION, ACCEPTED) dan overlap
   const overlapBookings = await prisma.transaction.findMany({
     where: {
       roomTypeId,
@@ -75,7 +59,6 @@ async function calcPriceAndValidateAvailability(
   let totalPrice = 0;
 
   for (const night of nights) {
-    // Kuota malam ini: quota - sum(qty) transaksi lain yang mencakup night
     const takenForThisNight = overlapBookings.reduce((sum, b) => {
       const bStart = new Date(
         b.checkInDate.getFullYear(),
@@ -98,10 +81,8 @@ async function calcPriceAndValidateAvailability(
       );
     }
 
-    // Harga dasar
     let nightly = roomType.price;
 
-    // Peak rules aktif di tanggal night
     const activeRules = peakRules.filter((r) => {
       const s = new Date(
         r.startDate.getFullYear(),
@@ -116,13 +97,11 @@ async function calcPriceAndValidateAvailability(
       return night >= s && night < e;
     });
 
-    // Jika ada yang isAvailable === false → tidak bisa dibooking
     const blocked = activeRules.some((r) => r.isAvailable === false);
     if (blocked) {
       throw new Error("Tanggal yang dipilih tidak tersedia (dibatasi tenant)");
     }
 
-    // Terapkan nominal lalu percentage
     for (const rule of activeRules) {
       if (rule.nominal && Number(rule.nominal) !== 0) {
         nightly += Number(rule.nominal);
@@ -138,16 +117,8 @@ async function calcPriceAndValidateAvailability(
   return { totalPrice, nights: nights.length };
 }
 
-/**
- * Controller: Create Reservation
- * Body: { roomTypeId, checkInDate, checkOutDate, qty }
- * Role: USER
- * Catatan:
- * - Tidak pakai field expiresAt → deadline = createdAt + 1 jam (dihitung dari createdAt)
- */
 export const createReservation = async (req: Request, res: Response) => {
   try {
-    // Validasi input via express-validator
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -156,8 +127,6 @@ export const createReservation = async (req: Request, res: Response) => {
       });
     }
 
-    // Ambil user dari auth middleware (sesuaikan dgn implementasi kamu)
-    // Pastikan middleware mengisi req.user = { id, role, ... }
     const authUser = (req as any).user || (req as any).authUser;
     if (!authUser) return res.status(401).json({ error: "Unauthorized" });
     if (authUser.role !== "USER")
@@ -180,12 +149,9 @@ export const createReservation = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "checkOutDate tidak valid" });
     }
     if (checkOutDate <= checkInDate) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "checkOutDate harus lebih besar dari checkInDate (min 1 malam)",
-        });
+      return res.status(400).json({
+        error: "checkOutDate harus lebih besar dari checkInDate (min 1 malam)",
+      });
     }
     if (!Number.isInteger(qty) || qty <= 0) {
       return res.status(400).json({ error: "qty harus integer positif" });
@@ -199,9 +165,8 @@ export const createReservation = async (req: Request, res: Response) => {
       qty
     );
 
-    // Simpan transaksi
-    const created = await prisma.$transaction(async (tx) => {
-      const trx = await tx.transaction.create({
+    const created = await prisma.$transaction(async (prisma) => {
+      const trx = await prisma.transaction.create({
         data: {
           userId: authUser.id,
           roomTypeId,
@@ -226,7 +191,6 @@ export const createReservation = async (req: Request, res: Response) => {
       return trx;
     });
 
-    // Hitung deadline (createdAt + 1 jam) — tanpa ubah schema
     const paymentDeadline = new Date(created.createdAt);
     paymentDeadline.setHours(paymentDeadline.getHours() + 1);
 
