@@ -21,3 +21,12 @@ export const reservationValidation = [
     .isInt({ min: 1 })
     .withMessage("qty harus integer minimal 1"),
 ];
+
+export const manualPaymentValidation = [
+  body("transactionId")
+    .exists()
+    .withMessage("transactionId wajib diisi")
+    .bail()
+    .isInt({ min: 1 })
+    .withMessage("transactionId harus berupa angka positif"),
+];
