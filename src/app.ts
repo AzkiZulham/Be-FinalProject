@@ -4,6 +4,7 @@ import session from "express-session";
 import passport from "./config/passport"; // file passport.ts yang isinya Google & Facebook strategy
 import authRoutes from "./routes/auth.routes";
 import transactionRoutes from "./routes/transaction.routes";
+import paymentRoutes from "./routes/payment.routes";
 
 const app = express();
 
@@ -24,6 +25,8 @@ app.use(
   })
 );
 
+app.use(express.static("public"));
+
 // inisialisasi passport
 app.use(passport.initialize());
 app.use(passport.session());
@@ -31,5 +34,6 @@ app.use(passport.session());
 // route auth
 app.use("/api/auth", authRoutes);
 app.use("/api/transaction", transactionRoutes);
+app.use("/api/payment", paymentRoutes);
 
 export default app;
