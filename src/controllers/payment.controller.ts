@@ -22,8 +22,8 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
     if (!file)
       return res.status(400).json({ error: "File bukti bayar harus diunggah" });
 
-    const relativePath = file.path; // sudah di-set oleh middleware singleFile
-    fileToCleanup = path.join("public", relativePath); // simpan untuk cleanup bila error
+    const relativePath = file.path;
+    fileToCleanup = path.join("public", relativePath);
 
     const allowed = ["image/jpeg", "image/png"];
 
@@ -68,42 +68,43 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
     });
 
     await prisma.$transaction(async (prisma) => {
-      if (existing) {
-        if (existing.paymentProof) {
-          const oldPath = path.join("public", existing.paymentProof);
-          await fs.unlink(oldPath).catch(() => {});
-        }
-
-        await prisma.payment.update({
-          where: { id: existing.id },
-          data: {
-            paymentProof: relativePath,
-            paymentStatus: "PENDING",
-            fraudStatus: "ACCEPT",
-            paymentType: null,
-            paidAt: null,
-          },
-        });
-      } else {
-        await prisma.payment.create({
-          data: {
-            transactionId: transaction.id,
-            method: "TRANSFER",
-            paymentProof: relativePath,
-            midtransId: null,
-            paymentType: null,
-            paymentStatus: "PENDING",
-            fraudStatus: "ACCEPT",
-            paymentUrl: null,
-            paidAt: null,
-          },
-        });
-      }
+      // upsert payment untuk transaksi ini
+      const updated = await prisma.payment.upsert({
+        where: { transactionId: transaction.id }, // UNIQUE
+        update: {
+          method: "TRANSFER",
+          paymentProof: relativePath,
+          paymentStatus: "PENDING",
+          fraudStatus: "ACCEPT",
+          paymentType: null,
+          paymentUrl: null,
+          midtransId: null,
+          paidAt: null,
+        },
+        create: {
+          transactionId: transaction.id,
+          method: "TRANSFER",
+          paymentProof: relativePath,
+          paymentStatus: "PENDING",
+          fraudStatus: "ACCEPT",
+          paymentType: null,
+          paymentUrl: null,
+          midtransId: null,
+          paidAt: null,
+        },
+        select: { id: true, paymentProof: true },
+      });
 
       await prisma.transaction.update({
         where: { id: transaction.id },
         data: { status: "WAITING_FOR_CONFIRMATION" },
       });
+
+      // setelah DB sukses, baru hapus file lama (kalau ada dan berbeda)
+      if (existing?.paymentProof && existing.paymentProof !== relativePath) {
+        const oldPath = path.join("public", existing.paymentProof);
+        fs.unlink(oldPath).catch(() => {});
+      }
     });
 
     return res.json({
