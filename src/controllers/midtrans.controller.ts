@@ -69,6 +69,9 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
         finish: `${process.env.FRONTEND_URL}/payment/finish`,
       },
       expiry: {
+        start_time:
+          transaction.createdAt.toISOString().slice(0, 19).replace("T", " ") +
+          " +0700",
         unit: "minutes",
         duration: 60,
       },
@@ -78,8 +81,18 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
     const snapResp = await midtransSnap.createTransaction(paramater);
     const { token, redirect_url } = snapResp;
 
-    await prisma.payment.create({
-      data: {
+    await prisma.payment.upsert({
+      where: { transactionId: transaction.id },
+      update: {
+        method: "MIDTRANS",
+        paymentStatus: "PENDING",
+        fraudStatus: "ACCEPT",
+        midtransId: orderId, // timpa dengan order_id terbaru
+        paymentType: null,
+        paymentUrl: redirect_url,
+        paidAt: null,
+      },
+      create: {
         transactionId: transaction.id,
         method: "MIDTRANS",
         paymentStatus: "PENDING",
