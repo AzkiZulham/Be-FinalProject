@@ -10,6 +10,16 @@ export const mockAuthUser = (
   next();
 };
 
+export const mockAuthTenant2 = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  // Simulasi login sebagai USER (id=1)
+  (req as any).user = { id: 5, role: "TENANT" };
+  next();
+};
+
 export const mockAuthTenant = (
   req: Request,
   res: Response,
