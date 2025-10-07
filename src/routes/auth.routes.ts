@@ -1,7 +1,11 @@
 import express from "express";
 import passport from "passport";
-import { register, googleCallback, facebookCallback, verifyToken } from "../controllers/auth.controller";
-import { verifyPassword } from "../controllers/verifypassword.controller";
+import { register } from "../controllers/register.controller";
+import { googleCallback, facebookCallback} from "../controllers/oauth.controller";
+import {  verifyToken } from "../controllers/verify.controller";
+import { verifyPassword, checkToken } from "../controllers/verifypassword.controller";
+import { login } from "../controllers/login.controller";
+
 
 const router = express.Router();
 
@@ -11,6 +15,8 @@ const router = express.Router();
 router.post("/register", register);
 router.get("/verify", verifyToken);
 router.post("/verify-password", verifyPassword);
+router.post("/login", login);
+router.get("/check-token", checkToken); 
 
 
 // ============================
