@@ -73,3 +73,39 @@ export const sendPaymentConfirmedEmail = async (
     console.error("Gagal kirim email notifikasi:", error);
   }
 };
+
+export const sendCheckInReminderEmail = async (
+  to: string,
+  username: string,
+  propertyName: string,
+  checkInDate: Date,
+  checkOutDate: Date
+) => {
+  const mailOptions = {
+    from: `"StayFinder" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Reminder Check-In - StayFinder",
+    html: `
+      <p>Halo <b>${username}</b>,</p>
+      <p>Ini pengingat bahwa besok kamu akan check-in di <b>${propertyName}</b>.</p>
+      <p>Detail pemesanan:</p>
+      <ul>
+        <li><b>Check-in:</b> ${new Date(checkInDate).toLocaleDateString()}</li>
+        <li><b>Check-out:</b> ${new Date(
+          checkOutDate
+        ).toLocaleDateString()}</li>
+      </ul>
+      <p>Selamat berlibur dan semoga penginapannya menyenangkan! ✨</p>
+      <br/>
+      <p>Salam,</p>
+      <p><b>StayFinder Team</b></p>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Remainder Terkirim: ", info.response);
+  } catch (error) {
+    console.error("Gagal kirim reminder: ", error);
+  }
+};

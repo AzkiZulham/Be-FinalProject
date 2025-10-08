@@ -21,6 +21,10 @@ model User {
   resetTokenExpireAt DateTime?
   verifyTokenExpireAt DateTime?
   isVerified        Boolean  @default(false)
+  isEmailVerified     Boolean       @default(false)
+  phoneNumber         String?       @db.VarChar(20)   
+  birthDate           DateTime?                    
+  gender              Gender?
   updatedAt         DateTime @updatedAt
   createdAt         DateTime @default(now())
 
@@ -30,6 +34,12 @@ model User {
   reviews           Review[]
 
   @@map("users")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
 
 model Property {
