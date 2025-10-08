@@ -118,70 +118,62 @@ export const getUserOrders = async (req: Request, res: Response) => {
   }
 };
 
-export const cancelOrderUser = async (req: Request, res: Response) => {
+export const getDetailUserOrder = async (req: Request, res: Response) => {
   try {
     const authUser = (req as any).user;
-    if (!authUser) return res.status(430).json({ error: "Unauthorized" });
-
+    if (!authUser) return res.status(401).json({ error: "Unauthorized" });
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ error: "Invalid transaction Id" });
+      return res.status(400).json({ error: "Id tidak valid" });
     }
 
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
-      include: {
-        payment: true,
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, userId: authUser.id },
+      select: {
+        userId: true,
+        id: true,
+        status: true,
+        qty: true,
+        totalPrice: true,
+        checkInDate: true,
+        checkOutDate: true,
+        createdAt: true,
+        roomType: {
+          select: {
+            roomName: true,
+            property: {
+              select: {
+                id: true,
+                name: true,
+                city: true,
+                address: true,
+                userId: true,
+              },
+            },
+          },
+        },
+        payment: {
+          select: {
+            id: true,
+            method: true,
+            paymentStatus: true,
+            paymentUrl: true,
+            paymentProof: true,
+            paidAt: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
     if (!transaction)
       return res.status(404).json({ error: "Transaksi tidak ditemukan" });
-    if (transaction.userId !== authUser.id)
-      return res
-        .status(403)
-        .json({ error: "Tidak berhak membatalkan transaksi ini" });
 
-    if (transaction.status !== "WAITING_FOR_PAYMENT") {
-      return res.status(409).json({
-        error: "Transaksi tidak dapat dibatalkan pada status saat ini",
-      });
-    }
-    if (
-      transaction.payment &&
-      (transaction.payment.paymentStatus ?? "") === "SETTLEMENT"
-    ) {
-      return res
-        .status(409)
-        .json({ error: "Transaksi sudah dibayar, tidak bisa dibatalkan" });
-    }
-
-    await prisma.$transaction(async (prisma) => {
-      if (
-        transaction.payment &&
-        (transaction.payment.paymentStatus ?? "") === "PENDING"
-      ) {
-        await prisma.payment.update({
-          where: { id: transaction.payment.id },
-          data: { paymentStatus: "CANCEL" },
-        });
-      }
-
-      await prisma.transaction.update({
-        where: { id: transaction.id },
-        data: {
-          status: TransactionStatus.CANCELLED,
-        },
-      });
-    });
-
-    return res.json({
-      message: "Transaksi dibatalkan",
-      transactionId: transaction.id,
-      status: "CANCELLED",
-    });
+    return res
+      .status(200)
+      .json({ message: "Get detail order berhasil", data: transaction });
   } catch (error) {
-    console.error("cancelUserOrder error:", error);
-    return res.status(500).json({ error: "Server error" });
+    console.error("Get detail order error: ", error);
+    return res.status(500).json({ error: "Server Error" });
   }
 };

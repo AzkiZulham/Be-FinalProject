@@ -115,3 +115,62 @@ export const getTenantOrder = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Server error" });
   }
 };
+
+export const getDetailTenantOrder = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any).user;
+    if (!authUser) return res.status(401).json({ error: "Unauthorized" });
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "Id tidak valid" });
+    }
+
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, roomType: { property: { userId: authUser.id } } },
+      select: {
+        id: true,
+        status: true,
+        qty: true,
+        totalPrice: true,
+        checkInDate: true,
+        checkOutDate: true,
+        createdAt: true,
+        roomType: {
+          select: {
+            roomName: true,
+            property: {
+              select: {
+                id: true,
+                name: true,
+                city: true,
+                address: true,
+                userId: true,
+              },
+            },
+          },
+        },
+        payment: {
+          select: {
+            id: true,
+            method: true,
+            paymentStatus: true,
+            paymentUrl: true,
+            paymentProof: true,
+            paidAt: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!transaction)
+      return res.status(404).json({ error: "Transaksi tidak ditemukan" });
+
+    return res
+      .status(200)
+      .json({ message: "Get detail order berhasil", data: transaction });
+  } catch (error) {
+    console.error("Get detail order error: ", error);
+    return res.status(500).json({ error: "Server Error" });
+  }
+};
