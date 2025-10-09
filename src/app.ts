@@ -5,6 +5,7 @@ import passport from "./config/passport"; // file passport.ts yang isinya Google
 import authRoutes from "./routes/auth.routes";
 import transactionRoutes from "./routes/transaction.routes";
 import paymentRoutes from "./routes/payment.routes";
+import reviewRoutes from "./routes/review.routes";
 
 const app = express();
 
@@ -35,5 +36,6 @@ app.use(passport.session());
 app.use("/api/auth", authRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/review", reviewRoutes);
 
 export default app;
