@@ -45,6 +45,7 @@ export const sendPaymentConfirmedEmail = async (
   checkInDate: Date,
   checkOutDate: Date
 ) => {
+  const url = `${process.env.FRONTEND_URL}/legal`;
   const mailOptions = {
     from: `"StayFinder" <${process.env.EMAIL_USER}>`,
     to,
@@ -63,6 +64,9 @@ export const sendPaymentConfirmedEmail = async (
       <br/>
       <p>Salam,</p>
       <p><b>StayFinder Team</b></p>
+
+      <p>Silakan klik link ini untuk mengetahui Kebijakan Privasi & Syarat Ketentuan:</p>
+      <a href="${url}" target="_blank">${url}</a>
     `,
   };
 
@@ -81,6 +85,7 @@ export const sendCheckInReminderEmail = async (
   checkInDate: Date,
   checkOutDate: Date
 ) => {
+  const url = `${process.env.FRONTEND_URL}/legal`;
   const mailOptions = {
     from: `"StayFinder" <${process.env.EMAIL_USER}>`,
     to,
@@ -99,6 +104,9 @@ export const sendCheckInReminderEmail = async (
       <br/>
       <p>Salam,</p>
       <p><b>StayFinder Team</b></p>
+
+      <p>Silakan klik link ini untuk mengetahui Kebijakan Privasi & Syarat Ketentuan:</p>
+      <a href="${url}" target="_blank">${url}</a>
     `,
   };
 
