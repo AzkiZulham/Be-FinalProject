@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,28 +8,26 @@ datasource db {
 }
 
 model User {
-  id                Int      @id @default(autoincrement())
-  role              Role
-  username          String
-  email             String   @unique
-  password          String?
-  profileImg        String?
-  resetToken        String?
-  verifyToken       String?
-  resetTokenExpireAt DateTime?
+  id                  Int           @id @default(autoincrement())
+  role                Role
+  username            String
+  email               String        @unique
+  password            String?
+  profileImg          String?
+  resetToken          String?
+  verifyToken         String?       @db.VarChar(500)
+  resetTokenExpireAt  DateTime?
   verifyTokenExpireAt DateTime?
-  isVerified        Boolean  @default(false)
+  isVerified          Boolean       @default(false)
+  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime      @default(now())
   isEmailVerified     Boolean       @default(false)
-  phoneNumber         String?       @db.VarChar(20)   
-  birthDate           DateTime?                    
+  phoneNumber         String?       @db.VarChar(20)
+  birthDate           DateTime?
   gender              Gender?
-  updatedAt         DateTime @updatedAt
-  createdAt         DateTime @default(now())
-
-  // relations
-  properties        Property[]
-  transactions      Transaction[]
-  reviews           Review[]
+  properties          Property[]
+  reviews             Review[]
+  transactions        Transaction[]
 
   @@map("users")
 }
@@ -43,87 +39,32 @@ enum Gender {
 }
 
 model Property {
-  id          Int       @id @default(autoincrement())
-  categoryId  Int
-  userId      Int
-  name        String
-  description String?
-  picture     String?
-  address     String
-  city        String
-  longitude   String?
-  latitude    String?
-  noRekening  String?
+  id              Int                @id @default(autoincrement())
+  categoryId      Int
+  userId          Int
+  name            String
+  description     String?
+  picture         String?
+  address         String
+  city            String
+  longitude       String?
+  latitude        String?
+  noRekening      String?
   destinationBank String?
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  updatedAt       DateTime           @updatedAt
+  createdAt       DateTime           @default(now())
+  category        propertycategories @relation(fields: [categoryId], references: [id])
+  user            User               @relation(fields: [userId], references: [id])
+  reviews         Review[]
+  roomtypes       roomtypes[]
 
-  // relations
-  user        User    @relation(fields: [userId], references: [id])
-  category    PropertyCategory @relation(fields: [categoryId], references: [id])
-  roomTypes   RoomType[]
-  reviews     Review[]
-
+  @@index([categoryId], map: "properties_categoryId_fkey")
+  @@index([userId], map: "properties_userId_fkey")
   @@map("properties")
 }
 
-model PropertyCategory {
-  id        Int      @id @default(autoincrement())
-  category  String
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
-
-  // relations
-  properties Property[]
-
-  @@map("propertyCategories")
-}
-
-enum RoomStatus {
-  AVAILABLE
-  BOOKED
-}
-
-model RoomType {
-  id          Int       @id @default(autoincrement())
-  propertyId  Int
-  roomName    String
-  price       Int
-  description String?
-  roomImg     String?
-  quota       Int
-  adultQty    Int
-  childQty    Int
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
-
-  // relations
-  property    Property @relation(fields: [propertyId], references: [id])
-  peakSeason  PeakSeason[]
-  transactions Transaction[]
-
-  @@map("roomTypes")
-}
-
-model PeakSeason {
-  id         Int       @id @default(autoincrement())
-  roomTypeId Int
-  isAvailable Boolean  @default(true)
-  startDate  DateTime
-  endDate    DateTime
-  percentage Float?
-  nominal    Int?
-  updatedAt  DateTime @updatedAt
-  createdAt  DateTime @default(now())
-
-  // relations
-  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
-
-  @@map("peakSeason")
-}
-
 model Transaction {
-  id           Int       @id @default(autoincrement())
+  id           Int               @id @default(autoincrement())
   userId       Int
   roomTypeId   Int
   status       TransactionStatus
@@ -131,45 +72,39 @@ model Transaction {
   checkOutDate DateTime
   qty          Int
   totalPrice   Int
-  updatedAt    DateTime @updatedAt
-  createdAt    DateTime @default(now())
-
-  // relations
-  user         User     @relation(fields: [userId], references: [id])
-  roomType     RoomType @relation(fields: [roomTypeId], references: [id])
+  updatedAt    DateTime          @updatedAt
+  createdAt    DateTime          @default(now())
   payment      Payment?
   review       Review?
+  roomType     roomtypes         @relation(fields: [roomTypeId], references: [id])
+  user         User              @relation(fields: [userId], references: [id])
 
+  @@index([roomTypeId], map: "transactions_roomTypeId_fkey")
+  @@index([userId], map: "transactions_userId_fkey")
   @@map("transactions")
 }
 
 model Review {
-  id            Int       @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   userId        Int
   propertyId    Int
-  transactionId Int       @unique
+  transactionId Int         @unique
   comment       String?
   tenantReply   String?
-  updatedAt     DateTime @updatedAt
-  createdAt     DateTime @default(now())
-
-  user          User       @relation(fields: [userId], references: [id])
-  property      Property   @relation(fields: [propertyId], references: [id])
+  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime    @default(now())
+  property      Property    @relation(fields: [propertyId], references: [id])
   transaction   Transaction @relation(fields: [transactionId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
 
+  @@index([propertyId], map: "reviews_propertyId_fkey")
+  @@index([userId], map: "reviews_userId_fkey")
   @@map("reviews")
 }
 
-enum TransactionStatus {
-  WAITING_FOR_PAYMENT
-  WAITING_FOR_CONFIRMATION
-  ACCEPTED
-  CANCELLED
-}
-
 model Payment {
-  id            Int       @id @default(autoincrement())
-  transactionId Int       @unique
+  id            Int           @id @default(autoincrement())
+  transactionId Int           @unique
   method        MethodPayment
   paymentProof  String?
   midtransId    String?
@@ -178,12 +113,60 @@ model Payment {
   fraudStatus   String?
   paymentUrl    String?
   paidAt        DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
 
   @@map("payments")
+}
+
+model peakseason {
+  id          Int       @id @default(autoincrement())
+  roomTypeId  Int
+  isAvailable Boolean   @default(true)
+  startDate   DateTime
+  endDate     DateTime
+  percentage  Float?
+  nominal     Int?
+  updatedAt   DateTime
+  createdAt   DateTime  @default(now())
+  roomtypes   roomtypes @relation(fields: [roomTypeId], references: [id], map: "peakSeason_roomTypeId_fkey")
+
+  @@index([roomTypeId], map: "peakSeason_roomTypeId_fkey")
+}
+
+model propertycategories {
+  id         Int        @id @default(autoincrement())
+  category   String
+  updatedAt  DateTime
+  createdAt  DateTime   @default(now())
+  properties Property[]
+}
+
+model roomtypes {
+  id           Int           @id @default(autoincrement())
+  propertyId   Int
+  roomName     String
+  price        Int
+  description  String?
+  roomImg      String?
+  quota        Int
+  adultQty     Int
+  childQty     Int
+  updatedAt    DateTime
+  createdAt    DateTime      @default(now())
+  peakseason   peakseason[]
+  properties   Property      @relation(fields: [propertyId], references: [id], map: "roomTypes_propertyId_fkey")
+  transactions Transaction[]
+
+  @@index([propertyId], map: "roomTypes_propertyId_fkey")
+}
+
+enum TransactionStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_FOR_CONFIRMATION
+  ACCEPTED
+  CANCELLED
 }
 
 enum MethodPayment {
@@ -195,3 +178,5 @@ enum Role {
   USER
   TENANT
 }
+
+

@@ -6,6 +6,8 @@ import authRoutes from "./routes/auth.routes";
 import transactionRoutes from "./routes/transaction.routes";
 import paymentRoutes from "./routes/payment.routes";
 import reviewRoutes from "./routes/review.routes";
+import path from "path";
+import userRoutes from "./routes/user.routes";
 
 const app = express();
 
@@ -32,10 +34,14 @@ app.use(express.static("public"));
 app.use(passport.initialize());
 app.use(passport.session());
 
+
 // route auth
 app.use("/api/auth", authRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/review", reviewRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/api/user", userRoutes);
+
 
 export default app;

@@ -1,55 +1,67 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction, Request } from "express";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../config/config";
+import { PrismaClient, Role } from "@prisma/client";
+import { AuthenticatedUser } from "types/express";
 
-export interface JwtPayload {
-  id: string;
-  role: "USER" | "TENANT";
-  email: string;
-  verified?: boolean;
-  iat?: number;
-  exp?: number;
-}
 
-export interface AuthenticatedRequest extends Request {
-  user?: JwtPayload;
-}
+const prisma = new PrismaClient();
 
-// ✅ Cek token dan decode user
-export const authenticate = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Token tidak ditemukan." });
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "Token kosong." });
-  }
-
+// ===========================
+// Middleware: authenticate()
+// ===========================
+export const authenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    req.user = decoded;
-    next();
-  } catch (error: any) {
-    console.error("JWT Error:", error);
-// ✅ Jika token sudah kedaluwarsa
-    if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({ message: "Token sudah kedaluwarsa, silakan login ulang." });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Token tidak ditemukan" });
     }
-// ✅ Jika token tidak valid
-    return res.status(403).json({ message: "Token tidak valid." });
+
+    const token = authHeader.split(" ")[1];
+    const secret = process.env.JWT_SECRET as string;
+
+    const decoded = jwt.verify(token, secret) as AuthenticatedUser;
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ message: "Token tidak valid" });
+    }
+
+    // Cek user di database
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    // Tempel data user ke req
+    req.user = {
+      id: user.id,
+      role: user.role,
+      email: user.email,
+    };
+
+    return next(); 
+  } catch (err) {
+    console.error("Auth error:", err);
+    return res.status(401).json({ message: "Autentikasi gagal" });
   }
 };
 
-// ✅ Batasi akses berdasarkan role
-export const authorize =
-  (roles: ("USER" | "TENANT")[]) =>
-  (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user) return res.status(401).json({ message: "User belum login." });
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: "Role tidak diizinkan." });
+// ===========================
+// Middleware: authorize()
+// ===========================
+// Bisa dipakai untuk role: USER, TENANT, ADMIN, dll.
+export const authorize = (roles: Role[]) => {
+  return (req: Request, res: Response, next: NextFunction): Response | void => {
+    if (!req.user) {
+      return res.status(401).json({ message: "User belum login." });
     }
-    next();
+
+    if (!roles.includes((req.user as AuthenticatedUser).role)) {
+      return res.status(403).json({ message: "Akses ditolak." });
+    }
+
+    return next(); 
   };
+};

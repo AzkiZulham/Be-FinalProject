@@ -4,36 +4,88 @@ const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // harus app password Gmail
+    pass: process.env.EMAIL_PASS,
   },
 });
 
-export const sendVerificationEmail = async (
-  to: string,
-  token: string,
-  role: string
-) => {
-  // Link verifikasi ke frontend
-  const url = `${process.env.FRONTEND_URL}/verify-password?token=${token}`;
-
+// ======================================
+// Verifikasi password (REGISTER)
+// ======================================
+export const sendVerificationEmail = async (to: string, token: string, role: string) => {
+  const url = `${process.env.API_URL}/verify-password?token=${token}`;
   const mailOptions = {
     from: `"StayFinder" <${process.env.EMAIL_USER}>`,
     to,
     subject: "Verifikasi Akun StayFinder",
     html: `
       <p>Halo!</p>
-      <p>Silakan klik link ini untuk memverifikasi akun Anda (${role}):</p>
+      <p>Silakan klik link di bawah ini untuk mengaktifkan akun Anda (${role}):</p>
       <a href="${url}" target="_blank">${url}</a>
-      <p>Link ini berlaku 1 jam.</p>
-      <p>Jika Anda tidak membuat akun, abaikan email ini.</p>
+      <p>Link ini berlaku selama 1 jam.</p>
+      <p>Jika Anda tidak mendaftar akun ini, abaikan email ini.</p>
     `,
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email terkirim:", info.response);
+    console.log("✅ [REGISTER] Email verifikasi akun terkirim:", info.response);
   } catch (error) {
-    console.error("Gagal kirim email:", error);
+    console.error("❌ [REGISTER] Gagal kirim email verifikasi akun:", error);
+    throw error;
+  }
+};
+
+// ======================================
+// Verifikasi email pertama kali
+// ======================================
+export const sendFirstEmailVerification = async (to: string, token: string) => {
+  const url = `${process.env.API_URL}/verify?token=${token}`;
+  const mailOptions = {
+    from: `"StayFinder" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Verifikasi Email StayFinder",
+    html: `
+      <p>Halo!</p>
+      <p>Silakan klik link di bawah ini untuk memverifikasi email pertama Anda:</p>
+      <a href="${url}" target="_blank">${url}</a>
+      <p>Link ini berlaku selama 1 jam.</p>
+      <p>Jika Anda tidak melakukan ini, abaikan email ini.</p>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ [FIRST VERIFY] Email verifikasi terkirim:", info.response);
+  } catch (error) {
+    console.error("❌ [FIRST VERIFY] Gagal kirim email:", error);
+    throw error;
+  }
+};
+
+// ======================================
+// Resend verifikasi setelah update email
+// ======================================
+export const sendResendEmailVerification = async (to: string, token: string) => {
+  const url = `${process.env.API_URL}/verify?token=${token}`;
+  const mailOptions = {
+    from: `"StayFinder" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Konfirmasi Email Baru StayFinder",
+    html: `
+      <p>Halo!</p>
+      <p>Anda baru saja memperbarui alamat email Anda.</p>
+      <p>Silakan klik link di bawah ini untuk memverifikasi email baru Anda:</p>
+      <a href="${url}" target="_blank">${url}</a>
+      <p>Link ini berlaku selama 1 jam.</p>
+      <p>Jika Anda tidak mengganti email, segera hubungi dukungan kami.</p>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ [RESEND] Email verifikasi email baru terkirim:", info.response);
+  } catch (error) {
+    console.error("❌ [RESEND] Gagal kirim email verifikasi email baru:", error);
     throw error;
   }
 };

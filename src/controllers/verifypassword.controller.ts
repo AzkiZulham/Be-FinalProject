@@ -1,7 +1,42 @@
 import { Request, Response } from "express";
-import { prisma } from "../config/prisma"; 
+import { prisma } from "../config/prisma";
 import bcrypt from "bcryptjs";
 
+// ==================================================
+// Handle GET /verify-password (klik dari email)
+// ==================================================
+export const verifyPasswordGet = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== "string") {
+      return res.redirect(`${process.env.FRONTEND_URL}/404`);
+    }
+
+    // Cari user berdasarkan token & belum expired
+    const user = await prisma.user.findFirst({
+      where: {
+        verifyToken: token,
+        verifyTokenExpireAt: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      console.log("Token invalid atau kadaluarsa");
+      return res.redirect(`${process.env.FRONTEND_URL}/verify-password?verified=false`);
+    }
+
+    // Token valid → redirect ke FE untuk tampilkan form set password
+    return res.redirect(`${process.env.FRONTEND_URL}/verify-password?token=${token}`);
+  } catch (error) {
+    console.error("GET verify-password error:", error);
+    return res.redirect(`${process.env.FRONTEND_URL}/verify-password?verified=false`);
+  }
+};
+
+// ==================================================
+// Handle POST /verify-password (set password)
+// ==================================================
 export const verifyPassword = async (req: Request, res: Response) => {
   try {
     const { token, password } = req.body;
@@ -10,18 +45,14 @@ export const verifyPassword = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Token dan password wajib diisi" });
     }
 
-    // Cari user berdasarkan verifyToken (token valid sudah dicek di frontend)
     const user = await prisma.user.findFirst({ where: { verifyToken: token } });
 
-    // Kalau token sudah tidak cocok dengan siapa pun (misal sudah dipakai)
     if (!user) {
       return res.status(400).json({ message: "Token tidak valid." });
     }
 
-    // Hash password baru
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Update user
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -32,7 +63,6 @@ export const verifyPassword = async (req: Request, res: Response) => {
       },
     });
 
-    // Tentukan redirect berdasarkan role
     const redirect = updatedUser.role === "TENANT" ? "/login/tenant" : "/login/user";
 
     return res.status(200).json({
@@ -50,8 +80,9 @@ export const verifyPassword = async (req: Request, res: Response) => {
   }
 };
 
-
-// Check token valid atau tidak 
+// ==================================================
+// Handle check-token (optional via FE)
+// ==================================================
 export const checkToken = async (req: Request, res: Response) => {
   try {
     const { token } = req.query;
@@ -62,7 +93,7 @@ export const checkToken = async (req: Request, res: Response) => {
     const user = await prisma.user.findFirst({
       where: {
         verifyToken: token as string,
-        verifyTokenExpireAt: { gt: new Date() }, // masih berlaku
+        verifyTokenExpireAt: { gt: new Date() },
       },
     });
 

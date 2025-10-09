@@ -33,7 +33,7 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: "7d" }
     );
 
-    res.json({
+    return res.json({
       message: "Login berhasil",
       token,
       user: {
@@ -46,6 +46,6 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: "Server error" });
   }
 };

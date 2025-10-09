@@ -39,8 +39,10 @@ export const register = async (req: Request, res: Response) => {
     await sendVerificationEmail(email, token, role);
 
     res.status(201).json({ message: "Registrasi berhasil, cek email untuk verifikasi." });
+    return;
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error" });
+    return;
   }
 };
