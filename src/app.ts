@@ -8,6 +8,7 @@ import paymentRoutes from "./routes/payment.routes";
 import reviewRoutes from "./routes/review.routes";
 import path from "path";
 import userRoutes from "./routes/user.routes";
+import propertyRoutes from "./routes/property.routes";
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/api/user", userRoutes);
+app.use("/api/properties", propertyRoutes);
 
 
 export default app;
