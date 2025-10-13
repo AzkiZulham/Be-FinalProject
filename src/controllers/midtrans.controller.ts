@@ -75,7 +75,7 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
         unit: "minutes",
         duration: 60,
       },
-      credit_card: { secure: true },
+      enabled_payments: ["qris", "gopay", "bank_transfer"],
     };
 
     const snapResp = await midtransSnap.createTransaction(paramater);
