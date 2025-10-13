@@ -148,6 +148,8 @@ export const getDetailUserOrder = async (req: Request, res: Response) => {
                 city: true,
                 address: true,
                 userId: true,
+                noRekening: true,
+                destinationBank: true,
               },
             },
           },
