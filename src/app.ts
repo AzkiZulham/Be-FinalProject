@@ -9,18 +9,19 @@ import reviewRoutes from "./routes/review.routes";
 import path from "path";
 import userRoutes from "./routes/user.routes";
 import propertyRoutes from "./routes/property.routes";
+import geolocationRoutes from "./routes/geolocation.routes";
+import bookingFilterRoutes from "./routes/bookingFilter.routes";
 
 const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000", // domain frontend
-    credentials: true, // izinkan cookie
+    origin: "http://localhost:3000", 
+    credentials: true, 
   })
 );
 app.use(express.json());
 
-// session diperlukan kalau mau simpan role di req.session
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "supersecret",
@@ -31,12 +32,10 @@ app.use(
 
 app.use(express.static("public"));
 
-// inisialisasi passport
 app.use(passport.initialize());
 app.use(passport.session());
 
 
-// route auth
 app.use("/api/auth", authRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/payment", paymentRoutes);
@@ -44,6 +43,8 @@ app.use("/api/review", reviewRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/api/user", userRoutes);
 app.use("/api/properties", propertyRoutes);
+app.use("/api/geolocation", geolocationRoutes);
+app.use("/api/booking", bookingFilterRoutes);
 
 
 export default app;
