@@ -1,12 +1,14 @@
-import { Request, Response } from 'express';
-import axios from 'axios';
-import { prisma } from '../config/prisma';
-import dotenv from 'dotenv';
+import { Request, Response } from "express";
+import { prisma } from "../config/prisma";
+import dotenv from "dotenv";
 
 dotenv.config();
 
+// ======================
+// Fungsi menghitung jarak antar koordinat (Haversine)
+// ======================
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 6371; // Earth's radius in kilometers
+  const R = 6371; // km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -17,18 +19,37 @@ const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 };
 
+// ======================
+// SEARCH PROPERTIES
+// ======================
 export const searchProperties = async (req: Request, res: Response) => {
   try {
     const { city, checkIn, checkOut, location, adultQty, childQty, roomQty } = req.body;
 
-    console.log('Search request:', { city, checkIn, checkOut, location, adultQty, childQty, roomQty });
+    console.log("Search request:", {
+      city,
+      checkIn,
+      checkOut,
+      location,
+      adultQty,
+      childQty,
+      roomQty,
+    });
 
+    // ======================
+    // Ambil semua properti + relasi penting
+    // ======================
     const properties = await prisma.property.findMany({
       include: {
         category: true,
         roomTypes: {
-          select: {
-            price: true,
+          include: {
+            transactions: {
+              where: {
+                status: { in: ["WAITING_FOR_CONFIRMATION", "ACCEPTED"] },
+              },
+            },
+            peakSeasons: true,
           },
         },
       },
@@ -36,44 +57,130 @@ export const searchProperties = async (req: Request, res: Response) => {
 
     let searchResults = properties;
 
+    // ======================
+    // Filter berdasarkan nama kota atau alamat
+    // ======================
     if (city) {
-      searchResults = searchResults.filter((property: any) =>
-        property.name.toLowerCase().includes(city.toLowerCase()) ||
-        property.address.toLowerCase().includes(city.toLowerCase()) ||
-        property.city.toLowerCase().includes(city.toLowerCase())
+      searchResults = searchResults.filter(
+        (property: any) =>
+          property.name.toLowerCase().includes(city.toLowerCase()) ||
+          property.address.toLowerCase().includes(city.toLowerCase()) ||
+          property.city.toLowerCase().includes(city.toLowerCase())
       );
     }
 
-    if (location && location.lat && location.lng) {
-      const userLat = parseFloat(location.lat);
-      const userLng = parseFloat(location.lng);
+    // ======================
+    // Filter berdasarkan ketersediaan kamar (checkIn/checkOut)
+    // ======================
+    if (checkIn && checkOut) {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
 
-      searchResults = searchResults
-        .map((property: any) => {
-          let distance = null;
-          if (property.latitude && property.longitude) {
-            const propLat = parseFloat(property.latitude);
-            const propLng = parseFloat(property.longitude);
-            distance = getDistance(userLat, userLng, propLat, propLng);
-          }
-          return { ...property, distance };
-        })
-        .filter((property: any) => property.distance !== null) 
-        .sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0)); 
+      searchResults = searchResults.filter((property: any) => {
+        const availableRoomTypes = property.roomTypes.filter((room: any) => {
+          // Cek transaksi aktif yang overlap dengan rentang tanggal
+          const overlappingTransactions = room.transactions.some((trx: any) => {
+            const trxIn = new Date(trx.checkInDate);
+            const trxOut = new Date(trx.checkOutDate);
+            return checkInDate < trxOut && checkOutDate > trxIn;
+          });
+
+          // Hitung total kamar yang sudah dipakai pada periode itu
+          const bookedQty = room.transactions
+            .filter((trx: any) => {
+              const trxIn = new Date(trx.checkInDate);
+              const trxOut = new Date(trx.checkOutDate);
+              return checkInDate < trxOut && checkOutDate > trxIn;
+            })
+            .reduce((sum: number, trx: any) => sum + trx.qty, 0);
+
+          // Kamar masih tersedia jika belum penuh
+          return !overlappingTransactions && room.quota - bookedQty > 0;
+        });
+
+        return availableRoomTypes.length > 0;
+      });
     }
 
+    // ======================
+    // Filter berdasarkan ketersediaan kamar (checkIn/checkOut)
+    // ======================
+    if (checkIn && checkOut) {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+
+      searchResults = searchResults.filter((property: any) => {
+        const availableRoomTypes = property.roomTypes.filter((room: any) => {
+          // Transaksi yang bisa memblokir kamar
+          const relevantTransactions = room.transactions.filter((trx: any) =>
+            ["WAITING_FOR_CONFIRMATION", "ACCEPTED"].includes(trx.status)
+          );
+
+          // Cek ada transaksi yang overlap dengan periode user
+          const overlappingTransactions = relevantTransactions.some((trx: any) => {
+            const trxIn = new Date(trx.checkInDate);
+            const trxOut = new Date(trx.checkOutDate);
+            return checkInDate < trxOut && checkOutDate > trxIn;
+          });
+
+          // Hitung total kamar yang sudah dipakai pada periode itu
+          const bookedQty = relevantTransactions
+            .filter((trx: any) => {
+              const trxIn = new Date(trx.checkInDate);
+              const trxOut = new Date(trx.checkOutDate);
+              return checkInDate < trxOut && checkOutDate > trxIn;
+            })
+            .reduce((sum: number, trx: any) => sum + trx.qty, 0);
+
+          // Kamar masih tersedia jika belum penuh
+          return room.quota - bookedQty > 0;
+        });
+
+        return availableRoomTypes.length > 0;
+      });
+    }
+
+    // ======================
+    // Hitung harga dengan peak season (jika ada)
+    // ======================
+    const now = new Date(checkIn || new Date());
+    searchResults = searchResults.map((property: any) => {
+      const updatedRoomTypes = property.roomTypes.map((room: any) => {
+        // Cek apakah tanggal booking masuk ke peak season
+        const peak = room.peakSeasons.find(
+          (ps: any) => now >= new Date(ps.startDate) && now <= new Date(ps.endDate)
+        );
+        let finalPrice = room.price;
+        if (peak) {
+          if (peak.nominal) finalPrice += peak.nominal;
+          if (peak.percentage) finalPrice += room.price * (peak.percentage / 100);
+        }
+        return { ...room, price: Math.round(finalPrice) };
+      });
+      return { ...property, roomTypes: updatedRoomTypes };
+    });
+
+    // ======================
+    // Format hasil
+    // ======================
     const formattedResults = searchResults.slice(0, 12).map((property: any) => ({
       id: property.id,
       name: property.name,
       address: property.address,
       city: property.city,
-      category: property.category.category,
+      category: property.category?.category || null,
       picture: property.picture,
-      price: property.roomTypes.length > 0 ? Math.min(...property.roomTypes.map((rt: any) => rt.price)) : null,
+      price:
+        property.roomTypes.length > 0
+          ? Math.min(...property.roomTypes.map((rt: any) => rt.price))
+          : null,
       availableRooms: property.roomTypes.length,
       distance: property.distance || null,
     }));
 
+    // ======================
+    // Kirim hasil ke frontend
+    // ======================
     res.json({
       success: true,
       data: formattedResults,
@@ -90,20 +197,22 @@ export const searchProperties = async (req: Request, res: Response) => {
         location,
         adultQty,
         childQty,
-        roomQty
-      }
+        roomQty,
+      },
     });
-
   } catch (error) {
-    console.error('Search API error:', error);
+    console.error("Search API error:", error);
     res.status(500).json({
       success: false,
-      message: 'Search failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: "Search failed",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
 
+// ======================
+// GET CITIES (untuk dropdown lokasi)
+// ======================
 export const getCities = async (req: Request, res: Response) => {
   try {
     const cityOptions = [
@@ -116,86 +225,16 @@ export const getCities = async (req: Request, res: Response) => {
       { value: "semarang", label: "Semarang", lat: -6.97, lng: 110.42 },
       { value: "medan", label: "Medan", lat: 3.59, lng: 98.67 },
       { value: "makassar", label: "Makassar", lat: -5.14, lng: 119.42 },
-      { value: "palembang", label: "Palembang", lat: -2.99, lng: 104.76 }
+      { value: "palembang", label: "Palembang", lat: -2.99, lng: 104.76 },
     ];
 
-    res.json({
-      success: true,
-      data: cityOptions
-    });
-
+    res.json({ success: true, data: cityOptions });
   } catch (error) {
-    console.error('Get cities error:', error);
+    console.error("Get cities error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get cities',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
-
-export const getCurrentLocation = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { lat, lng } = req.query;
-
-    if (!lat || !lng) {
-      res.status(400).json({
-        success: false,
-        message: 'Latitude and longitude are required'
-      });
-      return;
-    }
-
-    const apiKey = process.env.OPENCAGE_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({
-        success: false,
-        message: 'OpenCage API key not configured'
-      });
-      return;
-    }
-
-    const response = await axios.get(`https://api.opencagedata.com/geocode/v1/json`, {
-      params: {
-        q: `${lat},${lng}`,
-        key: apiKey,
-        language: 'id', 
-        pretty: 1
-      }
-    });
-
-    if (response.data.results && response.data.results.length > 0) {
-      const result = response.data.results[0];
-      const components = result.components;
-
-      let city = components.city || components.town || components.village ||
-                 components.county || components.state_district;
-
-      if (city) {
-        city = city.replace(/^Kota\s+/i, '').trim();
-      }
-
-      res.json({
-        success: true,
-        data: {
-          city: city || 'Unknown',
-          fullAddress: result.formatted,
-          components: components
-        }
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: 'Location not found'
-      });
-    }
-
-  } catch (error) {
-    console.error('Geolocation API error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get location information',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: "Failed to get cities",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };

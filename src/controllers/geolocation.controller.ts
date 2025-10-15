@@ -24,17 +24,130 @@ export const reverseGeocode = async (req: Request, res: Response) => {
     const data = response.data;
 
     if (data.results && data.results.length > 0) {
-      const result = data.results[0];
-      const components = result.components;
-      const city = components.city || components.town || components.village || components.county || "Unknown";
-      const formattedAddress = result.formatted;
+      const sortedResults = data.results.sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0));
+
+      let bestResult = sortedResults[0];
+      let bestCity = "";
+      let bestConfidence = 0;
+
+      for (const result of sortedResults) {
+        const components = result.components;
+        const confidence = result.confidence || 0;
+
+        const category = result.components._category;
+        const isAdministrative = !category || category === 'place' || category === 'boundary' ||
+                                category === 'administrative';
+
+        if (isAdministrative && confidence >= 7) { 
+          const city = components.city || components.town || components.village ||
+                      components.county || components.state_district || components.region;
+
+          if (city && confidence > bestConfidence) {
+            bestResult = result;
+            bestCity = city;
+            bestConfidence = confidence;
+          }
+        }
+      }
+
+      if (!bestCity) {
+        for (const result of sortedResults) {
+          const components = result.components;
+          const confidence = result.confidence || 0;
+
+          if (confidence >= 5) { // Lower threshold for second pass
+            const city = components.city || components.town || components.village ||
+                        components.county || components.state_district || components.region;
+
+            if (city && confidence > bestConfidence) {
+              bestResult = result;
+              bestCity = city;
+              bestConfidence = confidence;
+            }
+          }
+        }
+      }
+
+      if (!bestCity) {
+        bestResult = sortedResults[0];
+        const components = bestResult.components;
+        bestCity = components.city || components.town || components.village ||
+                  components.county || components.state_district || components.region || "Unknown";
+      }
+
+      const components = bestResult.components;
+      let city = bestCity;
+
+      city = city.replace(/^(Kota|Kabupaten|Kecamatan|Kelurahan|Desa)\s+/i, '').trim();
+
+      const cityNormalizations: { [key: string]: string } = {
+        'jakarta': 'Jakarta',
+        'dki jakarta': 'Jakarta',
+        'jakarta pusat': 'Jakarta',
+        'jakarta utara': 'Jakarta',
+        'jakarta timur': 'Jakarta',
+        'jakarta selatan': 'Jakarta',
+        'jakarta barat': 'Jakarta',
+        'yogyakarta': 'Yogyakarta',
+        'jogja': 'Yogyakarta',
+        'jogjakarta': 'Yogyakarta',
+        'surabaya': 'Surabaya',
+        'bandung': 'Bandung',
+        'semarang': 'Semarang',
+        'medan': 'Medan',
+        'makassar': 'Makassar',
+        'palembang': 'Palembang',
+        'bogor': 'Bogor',
+        'depok': 'Depok',
+        'tangerang': 'Tangerang',
+        'bekasi': 'Bekasi',
+        'malang': 'Malang',
+        'solo': 'Solo',
+        'surakarta': 'Solo',
+        'padang': 'Padang',
+        'bandar lampung': 'Bandar Lampung',
+        'lampung': 'Bandar Lampung',
+        'samarinda': 'Samarinda',
+        'pekanbaru': 'Pekanbaru',
+        'denpasar': 'Denpasar',
+        'bali': 'Denpasar',
+        'serang': 'Serang',
+        'cirebon': 'Cirebon',
+        'tasikmalaya': 'Tasikmalaya',
+        'banjarmasin': 'Banjarmasin',
+        'pontianak': 'Pontianak',
+        'manado': 'Manado',
+        'kupang': 'Kupang',
+        'jayapura': 'Jayapura',
+        'ambon': 'Ambon',
+        'mataram': 'Mataram',
+        'ternate': 'Ternate',
+        'sofifi': 'Sofifi'
+      };
+
+      const lowerCity = city.toLowerCase();
+      for (const [key, normalized] of Object.entries(cityNormalizations)) {
+        if (lowerCity.includes(key)) {
+          city = normalized;
+          break;
+        }
+      }
+      const latNum = parseFloat(lat as string);
+      const lngNum = parseFloat(lng as string);
+
+      if (latNum < -11 || latNum > 6 || lngNum < 95 || lngNum > 141) {
+        console.warn(`Coordinates ${latNum},${lngNum} appear to be outside Indonesia bounds`);
+      }
+
+      const formattedAddress = bestResult.formatted;
 
       return res.json({
         city,
         address: formattedAddress,
         components,
-        lat: parseFloat(lat as string),
-        lng: parseFloat(lng as string),
+        confidence: bestConfidence,
+        lat: latNum,
+        lng: lngNum,
       });
     } else {
       return res.status(404).json({ message: "No location found for the given coordinates" });
