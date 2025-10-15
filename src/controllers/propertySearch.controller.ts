@@ -42,6 +42,8 @@ export const getPropertyCatalog = async (req: Request, res: Response) => {
           roomTypes: {
             select: {
               price: true,
+            },
+            include: {
               transactions: true,
             },
           },
@@ -68,6 +70,8 @@ export const getPropertyCatalog = async (req: Request, res: Response) => {
           roomTypes: {
             select: {
               price: true,
+            },
+            include: {
               transactions: true,
             },
           },
@@ -78,7 +82,7 @@ export const getPropertyCatalog = async (req: Request, res: Response) => {
       const propertiesWithTransactions = allProperties
         .map(p => ({
           ...p,
-          transactionCount: p.roomTypes.reduce((sum, rt) => sum + rt.transactions.length, 0),
+          transactionCount: p.roomTypes.reduce((sum, rt) => sum + (rt as any).transactions.length, 0),
         }))
         .filter(p => p.transactionCount > 0)
         .sort((a, b) => {
@@ -104,6 +108,8 @@ export const getPropertyCatalog = async (req: Request, res: Response) => {
           roomTypes: {
             select: {
               price: true,
+            },
+            include: {
               transactions: true,
             },
           },
