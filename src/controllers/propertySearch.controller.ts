@@ -108,8 +108,6 @@ export const getPropertyCatalog = async (req: Request, res: Response) => {
           roomTypes: {
             select: {
               price: true,
-            },
-            include: {
               transactions: true,
             },
           },
