@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
 
+//  Hitung harga booking
 export const calculateBookingPrice = async (req: Request, res: Response) => {
   const { roomId, checkIn, checkOut, qty } = req.body;
 
@@ -72,15 +73,24 @@ export const calculateBookingPrice = async (req: Request, res: Response) => {
   }
 };
 
+// Detail properti
 export const getPropertyById = async (req: Request, res: Response) => {
   const { id } = req.params;
+
+  // Validasi id
+  const propertyId = Number(id);
+  if (isNaN(propertyId)) {
+    return res.status(400).json({ message: "ID property tidak valid" });
+  }
+
   try {
     const property = await prisma.property.findUnique({
-      where: { id: Number(id) },
+      where: { id: propertyId },
       include: {
         roomTypes: {
           include: {
-            peakSeasons: true
+            peakSeasons: true,
+            transactions: true
           }
         },
         reviews: {
@@ -114,6 +124,7 @@ export const getPropertyById = async (req: Request, res: Response) => {
         description: room.description,
         images: room.roomImg ? [room.roomImg] : [],
         quota: room.quota,
+        availableRooms: room.quota - room.transactions.length,
         peakSeasons: room.peakSeasons.map(p => ({
           startDate: p.startDate.toISOString().split("T")[0],
           endDate: p.endDate.toISOString().split("T")[0],
@@ -130,4 +141,75 @@ export const getPropertyById = async (req: Request, res: Response) => {
   }
 };
 
+
+// Top properties berdasarkan total transaksi
+export const getTopProperties = async (req: Request, res: Response) => {
+  try {
+    const limit = Number(req.query.limit) || 6;
+
+    if (limit <= 0) {
+      return res.status(400).json({ message: "Limit must be greater than 0" });
+    }
+
+    const properties = await prisma.property.findMany({
+      take: limit,
+      include: {
+        roomTypes: {
+          include: {
+            transactions: true, 
+          },
+        },
+        reviews: true,
+      },
+    });
+
+    const mappedProperties = properties.map((prop) => {
+      // hanya hitung transaksi ACCEPTED
+      const totalTransactions = prop.roomTypes.reduce(
+        (acc, room) =>
+          acc +
+          room.transactions.filter((t) => t.status === "ACCEPTED").length,
+        0
+      );
+
+      const minPrice = prop.roomTypes.length
+        ? Math.min(...prop.roomTypes.map((r) => r.price))
+        : null;
+
+      // untuk availableRooms, bisa tetap hitung semua transaksi termasuk non-ACCEPTED
+      const availableRooms = prop.roomTypes.reduce(
+        (acc, room) =>
+          acc +
+          (room.quota -
+            room.transactions.filter((t) => t.status === "ACCEPTED").length),
+        0
+      );
+
+      const rating = prop.reviews.length
+        ? prop.reviews.reduce((sum, r) => sum + (r.comment ? 1 : 0), 0) /
+          prop.reviews.length
+        : null;
+
+      return {
+        id: prop.id,
+        name: prop.name,
+        address: prop.address,
+        picture: prop.picture,
+        price: minPrice,
+        availableRooms,
+        rating,
+        reviewCount: prop.reviews.length,
+        totalTransactions,
+      };
+    });
+
+    // Urutkan totalTransactions
+    mappedProperties.sort((a, b) => b.totalTransactions - a.totalTransactions);
+
+    return res.json({ success: true, data: mappedProperties });
+  } catch (err) {
+    console.error("Error in getTopProperties:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
