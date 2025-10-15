@@ -68,40 +68,6 @@ export const searchProperties = async (req: Request, res: Response) => {
           property.city.toLowerCase().includes(city.toLowerCase())
       );
     }
-
-    // ======================
-    // Filter berdasarkan ketersediaan kamar (checkIn/checkOut)
-    // ======================
-    if (checkIn && checkOut) {
-      const checkInDate = new Date(checkIn);
-      const checkOutDate = new Date(checkOut);
-
-      searchResults = searchResults.filter((property: any) => {
-        const availableRoomTypes = property.roomTypes.filter((room: any) => {
-          // Cek transaksi aktif yang overlap dengan rentang tanggal
-          const overlappingTransactions = room.transactions.some((trx: any) => {
-            const trxIn = new Date(trx.checkInDate);
-            const trxOut = new Date(trx.checkOutDate);
-            return checkInDate < trxOut && checkOutDate > trxIn;
-          });
-
-          // Hitung total kamar yang sudah dipakai pada periode itu
-          const bookedQty = room.transactions
-            .filter((trx: any) => {
-              const trxIn = new Date(trx.checkInDate);
-              const trxOut = new Date(trx.checkOutDate);
-              return checkInDate < trxOut && checkOutDate > trxIn;
-            })
-            .reduce((sum: number, trx: any) => sum + trx.qty, 0);
-
-          // Kamar masih tersedia jika belum penuh
-          return !overlappingTransactions && room.quota - bookedQty > 0;
-        });
-
-        return availableRoomTypes.length > 0;
-      });
-    }
-
     // ======================
     // Filter berdasarkan ketersediaan kamar (checkIn/checkOut)
     // ======================
