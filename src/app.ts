@@ -11,13 +11,14 @@ import userRoutes from "./routes/user.routes";
 import propertyRoutes from "./routes/property.routes";
 import geolocationRoutes from "./routes/geolocation.routes";
 import bookingFilterRoutes from "./routes/bookingFilter.routes";
+import reportRoutes from "./routes/report.routes";
 
 const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000", 
-    credentials: true, 
+    origin: "http://localhost:3000",
+    credentials: true,
   })
 );
 app.use(express.json());
@@ -35,7 +36,6 @@ app.use(express.static("public"));
 app.use(passport.initialize());
 app.use(passport.session());
 
-
 app.use("/api/auth", authRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/payment", paymentRoutes);
@@ -45,6 +45,6 @@ app.use("/api/user", userRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/geolocation", geolocationRoutes);
 app.use("/api/booking", bookingFilterRoutes);
-
+app.use("/api/report", reportRoutes);
 
 export default app;
