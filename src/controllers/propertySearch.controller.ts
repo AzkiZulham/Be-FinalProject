@@ -40,9 +40,6 @@ export const getPropertyCatalog = async (req: Request, res: Response) => {
         include: {
           category: true,
           roomTypes: {
-            select: {
-              price: true,
-            },
             include: {
               transactions: true,
             },
@@ -68,9 +65,6 @@ export const getPropertyCatalog = async (req: Request, res: Response) => {
         include: {
           category: true,
           roomTypes: {
-            select: {
-              price: true,
-            },
             include: {
               transactions: true,
             },
