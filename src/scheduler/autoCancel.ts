@@ -19,7 +19,7 @@ export const autoCancel = () => {
               { payment: null },
               {
                 payment: {
-                  paymentStatus: { notIn: ["PENDING", "SETTLEMENT"] },
+                  paymentStatus: { notIn: ["SETTLEMENT"] },
                 },
               },
             ],

@@ -135,6 +135,14 @@ export const getDetailTenantOrder = async (req: Request, res: Response) => {
         checkInDate: true,
         checkOutDate: true,
         createdAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            phoneNumber: true,
+          },
+        },
         roomType: {
           select: {
             roomName: true,

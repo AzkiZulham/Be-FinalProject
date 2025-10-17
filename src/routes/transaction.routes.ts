@@ -1,10 +1,5 @@
 import { Router } from "express";
 import { createReservation } from "../controllers/transaction.controller";
-import {
-  mockAuthTenant,
-  mockAuthTenant2,
-  mockAuthUser,
-} from "../middleware/mockAuth";
 import { reservationValidation } from "../middleware/transactionValidation";
 import {
   getDetailUserOrder,
@@ -23,24 +18,66 @@ import {
   cancelOrderTenant,
   cancelOrderUser,
 } from "../controllers/cancelorder.controller";
+import { Role } from "@prisma/client";
 
 const router = Router();
 
 //User
 
-router.post("/", mockAuthUser, reservationValidation, createReservation);
+router.post(
+  "/",
+  authenticate,
+  authorize(["USER"]),
+  reservationValidation,
+  createReservation
+);
 
-router.get("/user/orders", mockAuthUser, getUserOrders);
-router.get("/user/orders/:id", mockAuthUser, getDetailUserOrder);
+router.get("/user/orders", authenticate, authorize(["USER"]), getUserOrders);
+router.get(
+  "/user/orders/:id",
+  authenticate,
+  authorize([Role.USER]),
+  getDetailUserOrder
+);
 
-router.patch("/user/orders/:id/cancel", mockAuthUser, cancelOrderUser);
+router.patch(
+  "/user/orders/:id/cancel",
+  authenticate,
+  authorize([Role.USER]),
+  cancelOrderUser
+);
 
 //Tenant
 
-router.get("/tenant/orders", mockAuthTenant, getTenantOrder);
-router.get("/tenant/orders/:id", mockAuthTenant, getDetailTenantOrder);
+router.get(
+  "/tenant/orders",
+  authenticate,
+  authorize([Role.TENANT]),
+  getTenantOrder
+);
+router.get(
+  "/tenant/orders/:id",
+  authenticate,
+  authorize([Role.TENANT]),
+  getDetailTenantOrder
+);
 
-router.patch("/tenant/orders/:id/cancel", mockAuthTenant, cancelOrderTenant);
-router.patch("/tenant/orders/:id/confirm", mockAuthTenant, confirmPayment);
-router.patch("/tenant/orders/:id/reject", mockAuthTenant, rejectPayment);
+router.patch(
+  "/tenant/orders/:id/cancel",
+  authenticate,
+  authorize([Role.TENANT]),
+  cancelOrderTenant
+);
+router.patch(
+  "/tenant/orders/:id/confirm",
+  authenticate,
+  authorize([Role.TENANT]),
+  confirmPayment
+);
+router.patch(
+  "/tenant/orders/:id/reject",
+  authenticate,
+  authorize([Role.TENANT]),
+  rejectPayment
+);
 export default router;
