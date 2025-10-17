@@ -48,6 +48,14 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
       transaction.roomType.roomName || "Room"
     }`;
 
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const startTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+      now.getDate()
+    )} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(
+      now.getSeconds()
+    )} +0700`;
+
     const paramater: any = {
       transaction_details: {
         order_id: orderId,
@@ -69,13 +77,10 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
         finish: `${process.env.FRONTEND_URL}/payment/finish`,
       },
       expiry: {
-        start_time:
-          transaction.createdAt.toISOString().slice(0, 19).replace("T", " ") +
-          " +0700",
+        start_time: startTime,
         unit: "minutes",
         duration: 60,
       },
-      enabled_payments: ["qris", "gopay", "bank_transfer"],
     };
 
     const snapResp = await midtransSnap.createTransaction(paramater);
@@ -87,7 +92,7 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
         method: "MIDTRANS",
         paymentStatus: "PENDING",
         fraudStatus: "ACCEPT",
-        midtransId: orderId, // timpa dengan order_id terbaru
+        midtransId: orderId,
         paymentType: null,
         paymentUrl: redirect_url,
         paidAt: null,

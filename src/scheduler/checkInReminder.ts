@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { prisma } from "../config/prisma";
 import { sendCheckInReminderEmail } from "../utils/mailer";
 
+//everyday at 7 am
 const scheduleRule = "0 7 * * *";
 
 export const checkInReminder = () => {
