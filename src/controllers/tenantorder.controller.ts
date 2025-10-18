@@ -23,12 +23,12 @@ export const getTenantOrder = async (req: Request, res: Response) => {
     }
 
     if (dateFrom || dateTo) {
-      where.createdAt = {};
+      where.checkInDate = {};
       if (dateFrom && !isNaN(dateFrom.getTime()))
-        where.createdAt.gte = dateFrom;
+        where.checkInDate.gte = dateFrom;
       if (dateTo && !isNaN(dateTo.getTime())) {
         dateTo.setHours(23, 59, 59, 999);
-        where.createdAt.lte = dateTo;
+        where.checkInDate.lte = dateTo;
       }
     }
 

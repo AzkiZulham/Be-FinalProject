@@ -75,7 +75,6 @@ export const getSalesReport = async (req: Request, res: Response) => {
       },
     });
 
-    //summary global
     const summary = {
       totalRevenue: 0,
       countTransaction: 0,
