@@ -14,6 +14,8 @@ import propertyCategoryRoutes from "./routes/propertyCategory.routes";
 import geolocationRoutes from "./routes/geolocation.routes";
 import bookingFilterRoutes from "./routes/bookingFilter.routes";
 import reportRoutes from "./routes/report.routes";
+import roomRoutes from "./routes/room.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
 
 const app = express();
 
@@ -50,5 +52,7 @@ app.use("/api/properties", propertyRoutes);
 app.use("/api/geolocation", geolocationRoutes);
 app.use("/api/booking", bookingFilterRoutes);
 app.use("/api/report", reportRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 export default app;

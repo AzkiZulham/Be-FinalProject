@@ -4,7 +4,6 @@ import { AuthenticatedUser } from "@/types/express";
 import path from "path";
 import fs from "fs";
 
-// GET /api/property-categories
 export const getPropertyCategories = async (req: Request, res: Response) => {
   try {
     const categories = await prisma.propertyCategory.findMany({
@@ -17,7 +16,6 @@ export const getPropertyCategories = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/properties/my
 export const getMyProperties = async (req: Request, res: Response) => {
   try {
     const user = req.user as AuthenticatedUser;
@@ -56,7 +54,6 @@ export const getMyProperties = async (req: Request, res: Response) => {
   }
 };
 
-// DELETE /api/properties/:id
 export const deleteProperty = async (req: Request, res: Response) => {
   try {
     const user = req.user as AuthenticatedUser;
@@ -79,7 +76,6 @@ export const deleteProperty = async (req: Request, res: Response) => {
     if (!prop || prop.userId !== user.id)
       return res.status(403).json({ error: "Tidak bisa menghapus property ini" });
 
-    // Check if property has active transactions
     const hasActiveTransactions = prop.roomTypes.some(roomType =>
       roomType.transactions.some(transaction =>
         transaction.status === 'WAITING_FOR_PAYMENT' ||
@@ -93,31 +89,26 @@ export const deleteProperty = async (req: Request, res: Response) => {
         error: "Tidak dapat menghapus properti yang memiliki transaksi aktif"
       });
     }
-    // 1. Delete peak seasons for all room types
     for (const roomType of prop.roomTypes) {
       await prisma.peakSeason.deleteMany({
         where: { roomTypeId: roomType.id }
       });
     }
 
-    // 2. Delete transactions for all room types (only cancelled ones should remain)
     for (const roomType of prop.roomTypes) {
       await prisma.transaction.deleteMany({
         where: { roomTypeId: roomType.id }
       });
     }
 
-    // 3. Delete reviews
     await prisma.review.deleteMany({
       where: { propertyId: propertyId }
     });
 
-    // 4. Delete room types
     await prisma.roomType.deleteMany({
       where: { propertyId: propertyId }
     });
 
-    // 5. Finally delete the property
     await prisma.property.delete({ where: { id: propertyId } });
 
     return res.json({ message: "Property berhasil dihapus" });
@@ -130,12 +121,10 @@ export const deleteProperty = async (req: Request, res: Response) => {
 export const updateProperty = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, address, categoryId, roomTypes, removeOldPicture } = req.body;
+    const { name, address, categoryId, roomTypes, removeOldPicture, noRekening, destinationBank } = req.body;
 
-    // Parse roomTypes dari JSON string
     const parsedRoomTypes = roomTypes ? JSON.parse(roomTypes) : [];
 
-    // Cari property lama
     const existingProperty = await prisma.property.findUnique({
       where: { id: Number(id) },
       include: { roomTypes: true },
@@ -144,11 +133,8 @@ export const updateProperty = async (req: Request, res: Response) => {
     if (!existingProperty) {
       return res.status(404).json({ message: "Property not found" });
     }
-
-    // Handle gambar baru
     let picturePath = existingProperty.picture;
     if (req.file) {
-      // hapus gambar lama jika ada
       if (existingProperty.picture) {
         const oldPath = path.join(__dirname, "../../", existingProperty.picture);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
@@ -156,15 +142,12 @@ export const updateProperty = async (req: Request, res: Response) => {
 
       picturePath = `uploads/properties/${req.file.filename}`;
     } else if (removeOldPicture === "true") {
-      // hapus gambar lama jika user hapus
       if (existingProperty.picture) {
         const oldPath = path.join(__dirname, "../../", existingProperty.picture);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
       picturePath = null;
     }
-
-    // Update data property
     const updatedProperty = await prisma.property.update({
       where: { id: Number(id) },
       data: {
@@ -172,10 +155,11 @@ export const updateProperty = async (req: Request, res: Response) => {
         address,
         categoryId: Number(categoryId),
         picture: picturePath,
+        noRekening: noRekening || null,
+        destinationBank: destinationBank || null,
       },
     });
 
-    // Update RoomTypes (hapus lama → buat baru)
     await prisma.roomType.deleteMany({
       where: { propertyId: Number(id) },
     });
@@ -219,13 +203,11 @@ export const createProperty = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Field wajib tidak boleh kosong" });
     }
 
-    // Handle property picture
     let picturePath = null;
     if (files?.picture && files.picture[0]) {
-      picturePath = `/uploads/properties/${files.picture[0].filename}`;
+      picturePath = `uploads/properties/${files.picture[0].filename}`;
     }
 
-    // Create property first
     const property = await prisma.property.create({
       data: {
         name,
@@ -238,7 +220,6 @@ export const createProperty = async (req: Request, res: Response) => {
       },
     });
 
-    // Parse and create room types
     if (roomTypes) {
       const parsedRoomTypes = JSON.parse(roomTypes);
 
@@ -246,10 +227,9 @@ export const createProperty = async (req: Request, res: Response) => {
         const room = parsedRoomTypes[i];
         let roomImgPath = null;
 
-        // Handle room image
         const roomImgKey = `roomImg_${i}`;
         if (files && files[roomImgKey] && files[roomImgKey][0]) {
-          roomImgPath = `/uploads/properties/${files[roomImgKey][0].filename}`;
+          roomImgPath = `uploads/properties/${files[roomImgKey][0].filename}`;
         }
 
         await prisma.roomType.create({
