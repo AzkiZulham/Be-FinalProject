@@ -24,30 +24,21 @@ export const getPropertyReport = async (req: Request, res: Response) => {
     const tenant = (req as any).user;
     if (!tenant) return res.status(409).json({ error: "Unauthorized" });
 
-    const propertyId = req.query.propertyId
-      ? Number(req.query.propertyId)
-      : undefined;
     const roomTypeId = req.query.roomTypeId
       ? Number(req.query.roomTypeId)
       : undefined;
     const start = new Date(String(req.query.start));
     const end = new Date(String(req.query.end));
 
-    if (!propertyId && !roomTypeId) {
-      return res
-        .status(400)
-        .json({ error: "propertyId dan roomTypeId wajib diisi" });
+    if (!roomTypeId) {
+      return res.status(400).json({ error: "roomTypeId wajib diisi" });
     }
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res.status(400).json({ error: "start/end invalid (YYYY-MM-DD)" });
     }
 
-    const roomType = await prisma.roomType.findMany({
-      where: {
-        ...(roomTypeId ? { id: roomTypeId } : {}),
-        ...(propertyId ? { property: { id: propertyId } } : {}),
-        property: { userId: tenant.id },
-      },
+    const roomType = await prisma.roomType.findUnique({
+      where: { id: roomTypeId },
       select: {
         id: true,
         roomName: true,
@@ -56,8 +47,7 @@ export const getPropertyReport = async (req: Request, res: Response) => {
         property: { select: { id: true, name: true, city: true } },
         peakSeasons: {
           where: {
-            startDate: { lt: end },
-            endDate: { gt: start },
+            OR: [{ startDate: { lt: end }, endDate: { gt: start } }],
           },
           select: {
             startDate: true,
@@ -69,79 +59,76 @@ export const getPropertyReport = async (req: Request, res: Response) => {
       },
     });
 
-    if (!roomType) return res.json({ items: [] });
+    if (!roomType)
+      return res.status(404).json({ error: "Room type tidak ditemukan" });
 
-    const roomTypeIds = roomType.map((row) => row.id);
-
-    const transaction = await prisma.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: {
-        roomTypeId: { in: roomTypeIds },
+        roomTypeId,
         status: "ACCEPTED",
         checkInDate: { lt: end },
         checkOutDate: { gt: start },
       },
       select: {
-        roomTypeId: true,
         checkInDate: true,
         checkOutDate: true,
         qty: true,
       },
     });
 
-    const bookedMap = new Map<number, Record<string, number>>();
-    for (const r of roomType) bookedMap.set(r.id, {});
-    for (const t of transaction) {
+    const bookedMap: Record<string, number> = {};
+    for (const t of transactions) {
       const s = new Date(Math.max(start.getTime(), t.checkInDate.getTime()));
       const e = new Date(Math.min(end.getTime(), t.checkOutDate.getTime()));
       for (let d = new Date(s); d < e; d.setDate(d.getDate() + 1)) {
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}-${String(d.getDate()).padStart(2, "0")}`;
-        const rt = bookedMap.get(t.roomTypeId)!;
-        rt[key] = (rt[key] ?? 0) + t.qty;
+        const key = d.toISOString().slice(0, 10);
+        bookedMap[key] = (bookedMap[key] ?? 0) + t.qty;
       }
     }
 
     const allDays = enumerateDates(start, end);
 
-    const items = roomType.map((row) => {
-      const perDate = allDays.map((date) => {
-        const [y, m, d] = date.split("-").map(Number);
-        const day = new Date(y, m - 1, d);
+    const perDate = allDays
+      .map((date) => {
+        const bookedQty = bookedMap[date] ?? 0;
+        if (bookedQty === 0) return null;
 
-        const reserved = bookedMap.get(row.id)![date] ?? 0; // jumlah kamar ter-booked di tanggal itu
-        const quota = row.quota ?? 0;
-        const remaining = Math.max(0, quota - reserved);
+        const remaining = Math.max(0, roomType.quota - bookedQty);
         const status: "AVAILABLE" | "FULL" =
           remaining > 0 ? "AVAILABLE" : "FULL";
 
-        const isPeakSeason = row.peakSeasons.some((p) => {
-          const hasChange =
-            (p.percentage != null && p.percentage !== 0) ||
-            (p.nominal != null && p.nominal !== 0);
-          return hasChange && day >= p.startDate && day < p.endDate;
+        const isPeakSeason = roomType.peakSeasons.some((p) => {
+          const day = new Date(date);
+          const inRange =
+            day >= p.startDate &&
+            day <= p.endDate &&
+            ((p.percentage ?? 0) !== 0 || (p.nominal ?? 0) !== 0);
+          return inRange;
         });
+
         return {
           date,
-          quota,
-          reserved,
-          remaining,
           status,
+          bookedQty,
+          remaining,
           isPeakSeason,
         };
-      });
-      return {
-        roomTypeId: row.id,
-        roomName: row.roomName,
-        property: row.property,
-        quota: row.quota,
-        perDate,
-      };
+      })
+      .filter(Boolean);
+
+    return res.json({
+      items: [
+        {
+          roomTypeId: roomType.id,
+          roomName: roomType.roomName,
+          property: roomType.property,
+          quota: roomType.quota,
+          perDate,
+        },
+      ],
     });
-    return res.json({ items });
   } catch (error) {
-    console.error("getPropertyAvailability error:", error);
+    console.error("getPropertyReport error:", error);
     return res.status(500).json({ error: "Server error" });
   }
 };
