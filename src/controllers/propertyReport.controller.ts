@@ -109,7 +109,7 @@ export const getPropertyReport = async (req: Request, res: Response) => {
         return {
           date,
           status,
-          bookedQty,
+          reserved: bookedQty,
           remaining,
           isPeakSeason,
         };
