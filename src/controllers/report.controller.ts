@@ -107,6 +107,28 @@ export const getSalesReport = async (req: Request, res: Response) => {
       user?: { id: number; username: string | null; email: string | null };
     }> = [];
 
+    if (groupBy === "property") {
+      const props = await prisma.property.findMany({
+        where: { userId: tenant.id, ...(propertyId ? { id: propertyId } : {}) },
+        select: { id: true, name: true, city: true },
+      });
+      for (const p of props) {
+        const k = `prop:${p.id}`;
+        if (!groupsMap.has(k)) {
+          groupsMap.set(k, {
+            revenue: 0,
+            countTransaction: 0,
+            byMethod: {
+              TRANSFER: { revenue: 0, count: 0 },
+              MIDTRANS: { revenue: 0, count: 0 },
+            },
+            key: { propertyId: p.id, name: p.name, city: p.city },
+            latestPaidAt: null,
+          });
+        }
+      }
+    }
+
     for (const row of rows) {
       const amount = row.totalPrice ?? 0;
       const method = (row.payment?.method || "TRANSFER") as
