@@ -21,7 +21,14 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
 
     const pendingPayments = await prisma.transaction.count({
       where: {
@@ -34,7 +41,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const monthlyRevenueResult = await prisma.transaction.aggregate({
       where: {
         roomType: { property: { userId: tenantId } },
-        status: "ACCEPTED",
+        payment: { paymentStatus: "SETTLEMENT" },
         createdAt: { gte: startOfMonth, lte: endOfMonth },
       },
       _sum: { totalPrice: true },
@@ -45,6 +52,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const totalBookings = await prisma.transaction.count({
       where: {
         roomType: { property: { userId: tenantId } },
+        status: "ACCEPTED",
+        payment: { paymentStatus: "SETTLEMENT" },
         createdAt: { gte: startOfMonth, lte: endOfMonth },
       },
     });
