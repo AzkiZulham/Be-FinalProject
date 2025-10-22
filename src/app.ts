@@ -16,6 +16,7 @@ import bookingFilterRoutes from "./routes/bookingFilter.routes";
 import reportRoutes from "./routes/report.routes";
 import roomRoutes from "./routes/room.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import peakSeasonRoutes from "./routes/peakSeason.routes";
 
 const app = express();
 
@@ -54,5 +55,6 @@ app.use("/api/booking", bookingFilterRoutes);
 app.use("/api/report", reportRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/peak-season", peakSeasonRoutes);
 
 export default app;

@@ -165,18 +165,30 @@ export const updateProperty = async (req: Request, res: Response) => {
     });
 
     if (parsedRoomTypes.length > 0) {
-      await prisma.roomType.createMany({
-        data: parsedRoomTypes.map((room: any) => ({
-          propertyId: Number(id),
-          roomName: room.roomName,
-          price: Number(room.price),
-          description: room.description || null,
-          roomImg: room.roomImg || null,
-          quota: Number(room.quota) || 1,
-          adultQty: Number(room.adultQty) || 1,
-          childQty: Number(room.childQty) || 0,
-        })),
-      });
+      for (let i = 0; i < parsedRoomTypes.length; i++) {
+        const room = parsedRoomTypes[i];
+        let roomImgPaths: string[] = room.roomImg ? (Array.isArray(room.roomImg) ? room.roomImg : []) : [];
+
+        const roomImgKey = `roomImg_${i}`;
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        if (files && files[roomImgKey] && files[roomImgKey].length > 0) {
+          const newPaths = files[roomImgKey].map(file => `uploads/properties/${file.filename}`);
+          roomImgPaths = [...roomImgPaths, ...newPaths];
+        }
+
+        await prisma.roomType.create({
+          data: {
+            propertyId: Number(id),
+            roomName: room.roomName,
+            price: Number(room.price),
+            description: room.description || null,
+            roomImg: roomImgPaths.length > 0 ? JSON.stringify(roomImgPaths) : null,
+            quota: Number(room.quota) || 1,
+            adultQty: Number(room.adultQty) || 1,
+            childQty: Number(room.childQty) || 0,
+          },
+        });
+      }
     }
 
     return res.json({
@@ -196,7 +208,7 @@ export const createProperty = async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Hanya tenant yang bisa membuat properti" });
     }
 
-    const { name, categoryId, description, address, city, roomTypes } = req.body;
+    const { name, categoryId, description, address, city, roomTypes, noRekening, destinationBank } = req.body;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     if (!name || !categoryId || !address || !city) {
@@ -217,6 +229,8 @@ export const createProperty = async (req: Request, res: Response) => {
         address,
         city,
         userId: user.id,
+        noRekening: noRekening || null,
+        destinationBank: destinationBank || null,
       },
     });
 
@@ -225,11 +239,11 @@ export const createProperty = async (req: Request, res: Response) => {
 
       for (let i = 0; i < parsedRoomTypes.length; i++) {
         const room = parsedRoomTypes[i];
-        let roomImgPath = null;
+        let roomImgPaths: string[] = [];
 
         const roomImgKey = `roomImg_${i}`;
-        if (files && files[roomImgKey] && files[roomImgKey][0]) {
-          roomImgPath = `uploads/properties/${files[roomImgKey][0].filename}`;
+        if (files && files[roomImgKey] && files[roomImgKey].length > 0) {
+          roomImgPaths = files[roomImgKey].map(file => `uploads/properties/${file.filename}`);
         }
 
         await prisma.roomType.create({
@@ -238,7 +252,7 @@ export const createProperty = async (req: Request, res: Response) => {
             roomName: room.roomName,
             price: Number(room.price),
             description: room.description || null,
-            roomImg: roomImgPath,
+            roomImg: roomImgPaths.length > 0 ? JSON.stringify(roomImgPaths) : null,
             quota: Number(room.quota),
             adultQty: Number(room.adultQty),
             childQty: Number(room.childQty),
