@@ -99,7 +99,7 @@ async function calcPriceAndValidateAvailability(
 
     const blocked = activeRules.some((r) => r.isAvailable === false);
     if (blocked) {
-      throw new Error("Tanggal yang dipilih tidak tersedia (dibatasi tenant)");
+      throw new Error("Tanggal yang dipilih tidak tersedia");
     }
 
     for (const rule of activeRules) {
@@ -200,7 +200,7 @@ export const createReservation = async (req: Request, res: Response) => {
       transaction: {
         ...created,
         nights,
-        orderNumber: `ORD-${created.id}-${created.createdAt.getTime()}`, // display only
+        orderNumber: `ORD-${created.id}-${created.createdAt.getTime()}`,
         paymentDeadline,
       },
     });
