@@ -151,6 +151,36 @@ export const getUserReview = async (req: Request, res: Response) => {
   }
 };
 
+export const getTenantReview = async (req: Request, res: Response) => {
+  try {
+    const tenant = (req as any).user;
+    if (!tenant) return res.status(401).json({ error: "Unauthorized" });
+
+    const transactionId = Number(req.params.transactionId);
+    if (!Number.isInteger(transactionId) || transactionId <= 0) {
+      return res.status(400).json({ error: "transactionId tidak valid" });
+    }
+
+    const review = await prisma.review.findUnique({
+      where: { transactionId: transactionId },
+      include: { property: { select: { userId: true } } },
+    });
+
+    if (!review)
+      return res.status(404).json({ error: "Review tidak ditemukan" });
+    if (review.property.userId !== tenant.id) {
+      return res
+        .status(403)
+        .json({ error: "Anda tidak berhak membalas review ini" });
+    }
+
+    return res.json({ message: "OK", data: review });
+  } catch (error) {
+    console.error("Get User Review for tenant error:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
 export const getReviewsByProperty = async (req: Request, res: Response) => {
   try {
     const propertyId = Number(req.params.propertyId);

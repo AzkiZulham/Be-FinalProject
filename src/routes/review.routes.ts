@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createReview,
   getReviewsByProperty,
+  getTenantReview,
   getUserReview,
   tenantReply,
 } from "../controllers/review.controller";
@@ -23,6 +24,13 @@ router.post(
 );
 
 router.get("/property/:propertyId", getReviewsByProperty);
+
+router.get(
+  "/tenant/:transactionId",
+  authenticate,
+  authorize([Role.TENANT]),
+  getTenantReview
+);
 
 router.get(
   "/:transactionId",
