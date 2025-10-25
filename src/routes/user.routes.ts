@@ -1,5 +1,5 @@
 import express from "express";
-import multer from "multer";
+import { profileUploadUser } from "../middleware/upload";
 import {
   updateProfile,
   updatePassword,
@@ -9,13 +9,7 @@ import {
 import { authenticate, authorize } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
 
-
 const router = express.Router();
-
-
-// Konfigurasi upload avatar
-const upload = multer({ dest: "uploads/" });
-
 
 // Update profil user atau tenant
 router.put(
@@ -38,7 +32,7 @@ router.post(
   "/upload-avatar",
   authenticate,
   authorize([Role.USER, Role.TENANT]),
-  upload.single("avatar"),
+  profileUploadUser.single("avatar"),
   uploadAvatar
 );
 

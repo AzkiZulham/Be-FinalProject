@@ -5,36 +5,12 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // ======================
-// Fungsi menghitung jarak antar koordinat (Haversine)
-// ======================
-const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 6371; // km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-};
-
-// ======================
 // SEARCH PROPERTIES
 // ======================
 export const searchProperties = async (req: Request, res: Response) => {
   try {
-    const { city, checkIn, checkOut, location, adultQty, childQty, roomQty } = req.body;
-
-    console.log("Search request:", {
-      city,
-      checkIn,
-      checkOut,
-      location,
-      adultQty,
-      childQty,
-      roomQty,
-    });
+    const { city, checkIn, checkOut, location, adultQty, childQty, roomQty } =
+      req.body;
 
     // ======================
     // Ambil semua properti + relasi penting
@@ -77,19 +53,18 @@ export const searchProperties = async (req: Request, res: Response) => {
 
       searchResults = searchResults.filter((property: any) => {
         const availableRoomTypes = property.roomTypes.filter((room: any) => {
-          // Transaksi yang bisa memblokir kamar
           const relevantTransactions = room.transactions.filter((trx: any) =>
             ["WAITING_FOR_CONFIRMATION", "ACCEPTED"].includes(trx.status)
           );
 
-          // Cek ada transaksi yang overlap dengan periode user
-          const overlappingTransactions = relevantTransactions.some((trx: any) => {
-            const trxIn = new Date(trx.checkInDate);
-            const trxOut = new Date(trx.checkOutDate);
-            return checkInDate < trxOut && checkOutDate > trxIn;
-          });
+          const overlappingTransactions = relevantTransactions.some(
+            (trx: any) => {
+              const trxIn = new Date(trx.checkInDate);
+              const trxOut = new Date(trx.checkOutDate);
+              return checkInDate < trxOut && checkOutDate > trxIn;
+            }
+          );
 
-          // Hitung total kamar yang sudah dipakai pada periode itu
           const bookedQty = relevantTransactions
             .filter((trx: any) => {
               const trxIn = new Date(trx.checkInDate);
@@ -98,7 +73,6 @@ export const searchProperties = async (req: Request, res: Response) => {
             })
             .reduce((sum: number, trx: any) => sum + trx.qty, 0);
 
-          // Kamar masih tersedia jika belum penuh
           return room.quota - bookedQty > 0;
         });
 
@@ -112,14 +86,15 @@ export const searchProperties = async (req: Request, res: Response) => {
     const now = new Date(checkIn || new Date());
     searchResults = searchResults.map((property: any) => {
       const updatedRoomTypes = property.roomTypes.map((room: any) => {
-        // Cek apakah tanggal booking masuk ke peak season
         const peak = room.peakSeasons.find(
-          (ps: any) => now >= new Date(ps.startDate) && now <= new Date(ps.endDate)
+          (ps: any) =>
+            now >= new Date(ps.startDate) && now <= new Date(ps.endDate)
         );
         let finalPrice = room.price;
         if (peak) {
           if (peak.nominal) finalPrice += peak.nominal;
-          if (peak.percentage) finalPrice += room.price * (peak.percentage / 100);
+          if (peak.percentage)
+            finalPrice += room.price * (peak.percentage / 100);
         }
         return { ...room, price: Math.round(finalPrice) };
       });
@@ -129,20 +104,22 @@ export const searchProperties = async (req: Request, res: Response) => {
     // ======================
     // Format hasil
     // ======================
-    const formattedResults = searchResults.slice(0, 12).map((property: any) => ({
-      id: property.id,
-      name: property.name,
-      address: property.address,
-      city: property.city,
-      category: property.category?.category || null,
-      picture: property.picture,
-      price:
-        property.roomTypes.length > 0
-          ? Math.min(...property.roomTypes.map((rt: any) => rt.price))
-          : null,
-      availableRooms: property.roomTypes.length,
-      distance: property.distance || null,
-    }));
+    const formattedResults = searchResults
+      .slice(0, 12)
+      .map((property: any) => ({
+        id: property.id,
+        name: property.name,
+        address: property.address,
+        city: property.city,
+        category: property.category?.category || null,
+        picture: property.picture,
+        price:
+          property.roomTypes.length > 0
+            ? Math.min(...property.roomTypes.map((rt: any) => rt.price))
+            : null,
+        availableRooms: property.roomTypes.length,
+        distance: property.distance || null,
+      }));
 
     // ======================
     // Kirim hasil ke frontend

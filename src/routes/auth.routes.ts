@@ -1,20 +1,35 @@
 import express from "express";
 import passport from "passport";
 import { register } from "../controllers/register.controller";
-import { googleCallback, facebookCallback } from "../controllers/oauth.controller";
-import { resendEmailVerification, verifyEmail, sendEmailVerification } from "../controllers/verify.controller";
-import { verifyPassword, checkToken, verifyPasswordGet } from "../controllers/verifypassword.controller";
+import {
+  googleCallback,
+  facebookCallback,
+} from "../controllers/oauth.controller";
+import {
+  resendEmailVerification,
+  verifyEmail,
+  sendEmailVerification,
+} from "../controllers/verify.controller";
+import {
+  verifyPassword,
+  checkToken,
+  verifyPasswordGet,
+} from "../controllers/verifypassword.controller";
 import { login } from "../controllers/login.controller";
 import { authorize, authenticate } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
-
+import {
+  forgotPassword,
+  resetPassword,
+  checkResetToken,
+} from "../controllers/forgotpassword.controller";
 const router = express.Router();
 
 // ============================
 // EMAIL REGISTER & VERIFY
 // ============================
 router.post("/register", register);
-router.get("/verify", verifyEmail); 
+router.get("/verify", verifyEmail);
 router.post("/verify-password", verifyPassword);
 router.post("/login", login);
 router.get("/check-token", checkToken);
@@ -37,6 +52,13 @@ router.post(
 );
 
 // ============================
+// FORGOT PASSWORD
+// ============================
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
+router.get("/check-reset-token", checkResetToken);
+
+// ============================
 // GOOGLE OAUTH
 // ============================
 router.get(
@@ -50,7 +72,10 @@ router.get(
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/login",
+  }),
   googleCallback
 );
 
@@ -68,7 +93,10 @@ router.get(
 
 router.get(
   "/facebook/callback",
-  passport.authenticate("facebook", { session: false, failureRedirect: "/login" }),
+  passport.authenticate("facebook", {
+    session: false,
+    failureRedirect: "/login",
+  }),
   facebookCallback
 );
 

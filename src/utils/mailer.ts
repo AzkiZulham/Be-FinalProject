@@ -11,8 +11,12 @@ const transporter = nodemailer.createTransport({
 // ======================================
 // Verifikasi password (REGISTER)
 // ======================================
-export const sendVerificationEmail = async (to: string, token: string, role: string) => {
-  const url = `${process.env.API_URL}/verify-password?token=${token}`;
+export const sendVerificationEmail = async (
+  to: string,
+  token: string,
+  role: string
+) => {
+  const url = `${process.env.FRONTEND_URL}/verify-password?token=${token}`;
   const mailOptions = {
     from: `"StayFinder" <${process.env.EMAIL_USER}>`,
     to,
@@ -28,7 +32,6 @@ export const sendVerificationEmail = async (to: string, token: string, role: str
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ [REGISTER] Email verifikasi akun terkirim:", info.response);
   } catch (error) {
     console.error("❌ [REGISTER] Gagal kirim email verifikasi akun:", error);
     throw error;
@@ -39,7 +42,7 @@ export const sendVerificationEmail = async (to: string, token: string, role: str
 // Verifikasi email pertama kali
 // ======================================
 export const sendFirstEmailVerification = async (to: string, token: string) => {
-  const url = `${process.env.API_URL}/verify?token=${token}`;
+  const url = `${process.env.API_URL}/api/auth/verify?token=${token}`;
   const mailOptions = {
     from: `"StayFinder" <${process.env.EMAIL_USER}>`,
     to,
@@ -55,7 +58,6 @@ export const sendFirstEmailVerification = async (to: string, token: string) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ [FIRST VERIFY] Email verifikasi terkirim:", info.response);
   } catch (error) {
     console.error("❌ [FIRST VERIFY] Gagal kirim email:", error);
     throw error;
@@ -65,8 +67,11 @@ export const sendFirstEmailVerification = async (to: string, token: string) => {
 // ======================================
 // Resend verifikasi setelah update email
 // ======================================
-export const sendResendEmailVerification = async (to: string, token: string) => {
-  const url = `${process.env.API_URL}/verify?token=${token}`;
+export const sendResendEmailVerification = async (
+  to: string,
+  token: string
+) => {
+  const url = `${process.env.API_URL}/api/auth/verify?token=${token}`;
   const mailOptions = {
     from: `"StayFinder" <${process.env.EMAIL_USER}>`,
     to,
@@ -83,9 +88,11 @@ export const sendResendEmailVerification = async (to: string, token: string) => 
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ [RESEND] Email verifikasi email baru terkirim:", info.response);
   } catch (error) {
-    console.error("❌ [RESEND] Gagal kirim email verifikasi email baru:", error);
+    console.error(
+      "❌ [RESEND] Gagal kirim email verifikasi email baru:",
+      error
+    );
     throw error;
   }
 };
@@ -124,7 +131,6 @@ export const sendPaymentConfirmedEmail = async (
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("📧 Email notifikasi pembayaran terkirim:", info.response);
   } catch (error) {
     console.error("Gagal kirim email notifikasi:", error);
   }
@@ -164,8 +170,45 @@ export const sendCheckInReminderEmail = async (
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("Remainder Terkirim: ", info.response);
   } catch (error) {
     console.error("Gagal kirim reminder: ", error);
+  }
+};
+
+// ======================================
+// Forgot Password Email
+// ======================================
+export const sendForgotPasswordEmail = async (
+  to: string,
+  resetToken: string
+) => {
+  const url = `${
+    process.env.FRONTEND_URL || "http://localhost:3001"
+  }/reset-password?token=${resetToken}`;
+  const mailOptions = {
+    from: `"StayFinder" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Reset Password - StayFinder",
+    html: `
+      <p>Halo!</p>
+      <p>Anda telah meminta untuk mereset password akun StayFinder Anda.</p>
+      <p>Silakan klik link di bawah ini untuk mereset password Anda:</p>
+      <a href="${url}" target="_blank">${url}</a>
+      <p>Link ini berlaku selama 1 jam.</p>
+      <p>Jika Anda tidak meminta reset password, abaikan email ini.</p>
+      <br/>
+      <p>Salam,</p>
+      <p><b>StayFinder Team</b></p>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error(
+      "❌ [FORGOT PASSWORD] Gagal kirim email reset password:",
+      error
+    );
+    throw error;
   }
 };

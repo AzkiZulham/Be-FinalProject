@@ -43,8 +43,8 @@ model Property {
   picture         String?
   address         String
   city            String
-  longitude       String?
-  latitude        String?
+  longitude       Float?
+  latitude        Float?
   noRekening      String?
   destinationBank String?
   updatedAt       DateTime        @updatedAt

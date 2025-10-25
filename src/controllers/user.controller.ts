@@ -12,14 +12,8 @@ import { JWT_SECRET } from "../config/config";
 export const updateProfile = async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?.id;
-    const {
-      userName,
-      email,
-      phoneNumber,
-      gender,
-      birthDate,
-      avatar,
-    } = req.body;
+    const { userName, email, phoneNumber, gender, birthDate, avatar } =
+      req.body;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
@@ -28,11 +22,13 @@ export const updateProfile = async (req: Request, res: Response) => {
       username: userName,
       profileImg: avatar,
       phoneNumber,
-      gender,
       birthDate: birthDate ? new Date(birthDate) : null,
     };
 
-    // Kalau email berubah → kirim ulang verifikasi
+    if (gender && ['MALE', 'FEMALE', 'OTHER'].includes(gender)) {
+      updateData.gender = gender;
+    }
+
     if (email && email !== user.email) {
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing)
@@ -82,7 +78,6 @@ export const updateProfile = async (req: Request, res: Response) => {
   }
 };
 
-
 // ==========================
 // Update Password
 // ==========================
@@ -95,7 +90,9 @@ export const updatePassword = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
     if (!password) {
-      return res.status(400).json({ success: false, message: "Password required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Password required" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -111,7 +108,9 @@ export const updatePassword = async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error("Update password error:", err);
-    return res.status(500).json({ success: false, message: "Failed to update password" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to update password" });
   }
 };
 
@@ -126,26 +125,28 @@ export const uploadAvatar = async (req: Request, res: Response) => {
     }
 
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
     }
-    console.log((req.user as AuthenticatedUser)?.id, (req.user as AuthenticatedUser)?.email, (req.user as AuthenticatedUser)?.role);
 
-
-    const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const imagePath = `/uploads/user-profile/${req.file.filename}`;
 
     await prisma.user.update({
       where: { id: userId },
-      data: { profileImg: fileUrl },
+      data: { profileImg: imagePath },
     });
 
     return res.json({
       success: true,
       message: "Avatar uploaded successfully",
-      data: { url: fileUrl },
+      avatar: imagePath,
     });
   } catch (err) {
     console.error("Upload avatar error:", err);
-    return res.status(500).json({ success: false, message: "Failed to upload avatar" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to upload avatar" });
   }
 };
 
@@ -166,7 +167,6 @@ export const getProfile = async (req: Request, res: Response) => {
       profileImg: true,
       isVerified: true,
       isEmailVerified: true,
-      // ✅ TAMBAHKAN FIELD INI:
       phoneNumber: true,
       birthDate: true,
       gender: true,
@@ -179,13 +179,14 @@ export const getProfile = async (req: Request, res: Response) => {
     user: {
       userName: user.username,
       email: user.email,
-      avatar: user.profileImg || "",
+      avatar: user.profileImg || "/default-avatar.png",
       verified: user.isVerified,
       isEmailVerified: user.isEmailVerified,
       phoneNumber: user.phoneNumber || "",
-      birthDate: user.birthDate ? user.birthDate.toISOString().split('T')[0] : "", 
+      birthDate: user.birthDate
+        ? user.birthDate.toISOString().split("T")[0]
+        : "",
       gender: user.gender || "",
     },
   });
 };
-

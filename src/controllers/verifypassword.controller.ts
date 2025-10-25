@@ -13,7 +13,6 @@ export const verifyPasswordGet = async (req: Request, res: Response) => {
       return res.redirect(`${process.env.FRONTEND_URL}/404`);
     }
 
-    // Cari user berdasarkan token & belum expired
     const user = await prisma.user.findFirst({
       where: {
         verifyToken: token,
@@ -22,15 +21,19 @@ export const verifyPasswordGet = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      console.log("Token invalid atau kadaluarsa");
-      return res.redirect(`${process.env.FRONTEND_URL}/verify-password?verified=false`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/verify-password?verified=false`
+      );
     }
 
-    // Token valid → redirect ke FE untuk tampilkan form set password
-    return res.redirect(`${process.env.FRONTEND_URL}/verify-password?token=${token}`);
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/verify-password?token=${token}`
+    );
   } catch (error) {
     console.error("GET verify-password error:", error);
-    return res.redirect(`${process.env.FRONTEND_URL}/verify-password?verified=false`);
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/verify-password?verified=false`
+    );
   }
 };
 
@@ -42,7 +45,9 @@ export const verifyPassword = async (req: Request, res: Response) => {
     const { token, password } = req.body;
 
     if (!token || !password) {
-      return res.status(400).json({ message: "Token dan password wajib diisi" });
+      return res
+        .status(400)
+        .json({ message: "Token dan password wajib diisi" });
     }
 
     const user = await prisma.user.findFirst({ where: { verifyToken: token } });
@@ -63,7 +68,8 @@ export const verifyPassword = async (req: Request, res: Response) => {
       },
     });
 
-    const redirect = updatedUser.role === "TENANT" ? "/login/tenant" : "/login/user";
+    const redirect =
+      updatedUser.role === "TENANT" ? "/login/tenant" : "/login/user";
 
     return res.status(200).json({
       message: "Password berhasil dibuat! Silakan login untuk melanjutkan.",
@@ -87,7 +93,9 @@ export const checkToken = async (req: Request, res: Response) => {
   try {
     const { token } = req.query;
     if (!token) {
-      return res.status(400).json({ valid: false, message: "Token tidak ditemukan" });
+      return res
+        .status(400)
+        .json({ valid: false, message: "Token tidak ditemukan" });
     }
 
     const user = await prisma.user.findFirst({
@@ -100,7 +108,10 @@ export const checkToken = async (req: Request, res: Response) => {
     if (!user) {
       return res
         .status(400)
-        .json({ valid: false, message: "Token tidak valid atau sudah kadaluarsa" });
+        .json({
+          valid: false,
+          message: "Token tidak valid atau sudah kadaluarsa",
+        });
     }
 
     return res.json({ valid: true });
