@@ -39,7 +39,7 @@ model Property {
   categoryId      Int
   userId          Int
   name            String
-  description     String?
+  description     String?         @db.Text
   picture         String?
   address         String
   city            String
@@ -77,7 +77,7 @@ model RoomType {
   roomName     String
   price        Int
   description  String?
-  roomImg      String?
+  roomImg      Json?
   quota        Int
   adultQty     Int
   childQty     Int

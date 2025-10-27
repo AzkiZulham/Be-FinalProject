@@ -54,7 +54,7 @@ export const createRoom = async (req: Request, res: Response) => {
         quota: Number(quota) || 1,
         adultQty: Number(adultQty) || 1,
         childQty: Number(childQty) || 0,
-        roomImg: roomImgPaths.length > 0 ? JSON.stringify(roomImgPaths) : null,
+        roomImg: roomImgPaths.length > 0 ? roomImgPaths : undefined,
       },
     });
 
@@ -118,7 +118,7 @@ export const updateRoom = async (req: Request, res: Response) => {
         quota: Number(quota),
         adultQty: Number(adultQty),
         childQty: Number(childQty),
-        ...(roomImgPaths.length > 0 && { roomImg: JSON.stringify(roomImgPaths) }),
+        ...(roomImgPaths.length > 0 && { roomImg: roomImgPaths }),
       },
     });
 

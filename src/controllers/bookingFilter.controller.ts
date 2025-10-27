@@ -73,7 +73,18 @@ export const searchProperties = async (req: Request, res: Response) => {
             })
             .reduce((sum: number, trx: any) => sum + trx.qty, 0);
 
-          return room.quota - bookedQty > 0;
+          const isDateAvailable = room.peakSeasons.every((season: any) => {
+            const seasonStart = new Date(season.startDate);
+            const seasonEnd = new Date(season.endDate);
+            const overlaps = checkInDate <= seasonEnd && checkOutDate >= seasonStart;
+            if (overlaps && season.isAvailable === false) {
+              return false;
+            }
+
+            return true;
+          });
+
+          return room.quota - bookedQty > 0 && isDateAvailable;
         });
 
         return availableRoomTypes.length > 0;

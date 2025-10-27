@@ -7,7 +7,7 @@ export const calculateBookingPrice = async (req: Request, res: Response) => {
   try {
     const room = await prisma.roomType.findUnique({
       where: { id: Number(roomId) },
-      include: { peakSeasons: true },
+      include: { peakSeasons: true }
     });
 
     if (!room) return res.status(404).json({ message: "Room not found" });
@@ -16,14 +16,10 @@ export const calculateBookingPrice = async (req: Request, res: Response) => {
     const checkOutDate = new Date(checkOut);
 
     if (checkOutDate <= checkInDate) {
-      return res
-        .status(400)
-        .json({ message: "Check-out must be after check-in" });
+      return res.status(400).json({ message: "Check-out must be after check-in" });
     }
 
-    const nights = Math.ceil(
-      (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
 
     let total = 0;
     let normalNights = 0;
@@ -36,17 +32,17 @@ export const calculateBookingPrice = async (req: Request, res: Response) => {
       nightDate.setDate(checkInDate.getDate() + i);
       let price = room.price;
 
-      const applicableSeason = room.peakSeasons.find((season) => {
+      const applicableSeason = room.peakSeasons.find(season => {
         const start = new Date(season.startDate);
         const end = new Date(season.endDate);
         return nightDate >= start && nightDate <= end;
       });
 
-      if (applicableSeason) {
+      if (applicableSeason && applicableSeason.isAvailable === true && (applicableSeason.nominal || applicableSeason.percentage)) {
         if (applicableSeason.nominal) {
           price += applicableSeason.nominal;
         } else if (applicableSeason.percentage) {
-          price *= 1 + applicableSeason.percentage / 100;
+          price *= (1 + applicableSeason.percentage / 100);
         }
         peakNights++;
         peakTotal += price;
@@ -68,7 +64,7 @@ export const calculateBookingPrice = async (req: Request, res: Response) => {
       peakNights,
       normalTotal,
       peakTotal,
-      perNight: total / qty / nights,
+      perNight: total / qty / nights
     });
   } catch (err) {
     console.error(err);
@@ -91,27 +87,26 @@ export const getPropertyById = async (req: Request, res: Response) => {
         roomTypes: {
           include: {
             peakSeasons: true,
-            transactions: true,
-          },
+            transactions: true
+          }
         },
         reviews: {
           include: {
-            user: true,
-          },
-        },
-      },
+            user: true
+          }
+        }
+      }
     });
 
-    if (!property)
-      return res.status(404).json({ message: "Property tidak ditemukan" });
+    if (!property) return res.status(404).json({ message: "Property tidak ditemukan" });
 
-    const formattedReviews = property.reviews.map((r) => ({
+    const formattedReviews = property.reviews.map(r => ({
       id: r.id,
       userName: r.user.username,
       date: r.createdAt.toISOString().split("T")[0],
       comment: r.comment,
       likes: 0,
-      verified: r.user.isVerified,
+      verified: r.user.isVerified
     }));
 
     const formattedProperty = {
@@ -119,21 +114,22 @@ export const getPropertyById = async (req: Request, res: Response) => {
       reviewCount: formattedReviews.length,
       images: property.picture ? [property.picture] : [],
       amenities: [],
-      roomtypes: property.roomTypes.map((room) => ({
+      roomtypes: property.roomTypes.map(room => ({
         id: room.id,
         roomName: room.roomName,
         price: room.price,
         description: room.description,
-        images: room.roomImg ? [room.roomImg] : [],
+        images: Array.isArray(room.roomImg) ? room.roomImg : [],
         quota: room.quota,
         availableRooms: room.quota - room.transactions.length,
-        peakSeasons: room.peakSeasons.map((p) => ({
+        peakSeasons: room.peakSeasons.map(p => ({
           startDate: p.startDate.toISOString().split("T")[0],
           endDate: p.endDate.toISOString().split("T")[0],
           nominal: p.nominal,
           percentage: p.percentage,
-        })),
-      })),
+          isAvailable: p.isAvailable
+        }))
+      }))
     };
 
     return res.json({ property: formattedProperty, reviews: formattedReviews });
@@ -143,13 +139,8 @@ export const getPropertyById = async (req: Request, res: Response) => {
   }
 };
 
-const getDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number => {
-  const R = 6371; // km
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; 
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -183,7 +174,8 @@ export const getTopProperties = async (req: Request, res: Response) => {
     const mappedProperties = properties.map((prop) => {
       const totalTransactions = prop.roomTypes.reduce(
         (acc, room) =>
-          acc + room.transactions.filter((t) => t.status === "ACCEPTED").length,
+          acc +
+          room.transactions.filter((t) => t.status === "ACCEPTED").length,
         0
       );
 
@@ -231,9 +223,7 @@ export const getNearbyProperties = async (req: Request, res: Response) => {
     const { lat, lng, radius = 50, limit = 6 } = req.query;
 
     if (!lat || !lng) {
-      return res
-        .status(400)
-        .json({ message: "Latitude and longitude are required" });
+      return res.status(400).json({ message: "Latitude and longitude are required" });
     }
 
     const userLat = parseFloat(lat as string);
@@ -262,22 +252,18 @@ export const getNearbyProperties = async (req: Request, res: Response) => {
 
     const nearbyProperties = allProperties
       .map((prop) => {
-        const distance = getDistance(
-          userLat,
-          userLng,
-          prop.latitude!,
-          prop.longitude!
-        );
+        const distance = getDistance(userLat, userLng, prop.latitude!, prop.longitude!);
         return { ...prop, distance };
       })
       .filter((prop) => prop.distance <= searchRadius)
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, resultLimit);
+      .sort((a, b) => a.distance - b.distance) 
+      .slice(0, resultLimit); 
 
     const mappedProperties = nearbyProperties.map((prop) => {
       const totalTransactions = prop.roomTypes.reduce(
         (acc, room) =>
-          acc + room.transactions.filter((t) => t.status === "ACCEPTED").length,
+          acc +
+          room.transactions.filter((t) => t.status === "ACCEPTED").length,
         0
       );
 
@@ -308,7 +294,7 @@ export const getNearbyProperties = async (req: Request, res: Response) => {
         rating,
         reviewCount: prop.reviews.length,
         totalTransactions,
-        distance: Math.round(prop.distance * 100) / 100,
+        distance: Math.round(prop.distance * 100) / 100, 
       };
     });
 

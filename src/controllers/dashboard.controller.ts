@@ -38,16 +38,13 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       },
     });
 
-    const monthlyRevenueResult = await prisma.transaction.aggregate({
-      where: {
-        roomType: { property: { userId: tenantId } },
-        payment: { paymentStatus: "SETTLEMENT" },
-        createdAt: { gte: startOfMonth, lte: endOfMonth },
-      },
-      _sum: { totalPrice: true },
+    const categoriesPropertyResult = await prisma.property.findMany({
+      where: { userId: tenantId },
+      select: { categoryId: true },
+      distinct: ['categoryId'],
     });
 
-    const monthlyRevenue = monthlyRevenueResult._sum.totalPrice || 0;
+    const categoriesProperty = categoriesPropertyResult.length;
 
     const totalBookings = await prisma.transaction.count({
       where: {
@@ -69,7 +66,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       totalProperties,
       totalRooms,
       pendingPayments,
-      monthlyRevenue,
+      categoriesProperty,
       totalBookings,
       pendingBookings,
     };
