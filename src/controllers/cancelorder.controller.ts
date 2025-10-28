@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { TransactionStatus } from "@prisma/client";
 import { prisma } from "../config/prisma";
+import { expireMidtrans } from "../utils/midtransExpire";
 
 export const cancelOrderUser = async (req: Request, res: Response) => {
   try {
@@ -58,6 +59,16 @@ export const cancelOrderUser = async (req: Request, res: Response) => {
         },
       });
     });
+
+    if (
+      transaction.payment?.method === "MIDTRANS" &&
+      (transaction.payment?.paymentStatus ?? "") === "PENDING" &&
+      transaction.payment?.midtransId
+    ) {
+      expireMidtrans(transaction.payment.midtransId).catch((err) =>
+        console.warn("Gagal expire Midtrans:", err.message)
+      );
+    }
 
     return res.json({
       message: "Transaksi dibatalkan",
@@ -129,6 +140,16 @@ export const cancelOrderTenant = async (req: Request, res: Response) => {
         },
       });
     });
+
+    if (
+      transaction.payment?.method === "MIDTRANS" &&
+      (transaction.payment?.paymentStatus ?? "") === "PENDING" &&
+      transaction.payment?.midtransId
+    ) {
+      expireMidtrans(transaction.payment.midtransId).catch((err) =>
+        console.warn("Gagal expire Midtrans:", err.message)
+      );
+    }
 
     return res.json({
       message: "Transaksi dibatalkan",

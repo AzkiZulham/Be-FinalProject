@@ -18,6 +18,9 @@ export const getUserOrders = async (req: Request, res: Response) => {
       : undefined;
     const q = req.query.q ? String(req.query.q).trim() : undefined;
 
+    const orderRaw = String(req.query.order ?? "desc");
+    const order = orderRaw === "asc" ? "asc" : "desc";
+
     const where: any = { userId: authUser.id };
 
     if (status) {
@@ -45,7 +48,7 @@ export const getUserOrders = async (req: Request, res: Response) => {
       prisma.transaction.count({ where }),
       prisma.transaction.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: { id: order },
         skip,
         take: limit,
         select: {
