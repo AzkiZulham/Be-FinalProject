@@ -43,7 +43,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       );
 
       updateData.email = email;
-      updateData.isVerified = false;
+      updateData.isEmailVerified = false;
       updateData.verifyToken = token;
       updateData.verifyTokenExpireAt = new Date(Date.now() + 3600000);
 
@@ -58,6 +58,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         username: true,
         email: true,
         isVerified: true,
+        isEmailVerified: true,
         profileImg: true,
         phoneNumber: true,
         gender: true,

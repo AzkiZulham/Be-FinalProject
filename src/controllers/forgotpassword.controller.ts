@@ -88,10 +88,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(200).json({
-        message:
-          "Jika email terdaftar, instruksi reset password telah dikirim.",
-      });
+      return res.status(400).json({ error: "Email tidak terdaftar" });
     }
 
     const existingToken =
