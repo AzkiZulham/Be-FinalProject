@@ -19,7 +19,7 @@ export const googleCallback = async (req: Request, res: Response) => {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      user = await prisma.user.create({ data: { email, username, role: roleFromSession, isVerified: true } });
+      user = await prisma.user.create({ data: { email, username, role: roleFromSession, isVerified: true, isEmailVerified: true } });
     } else if (user.role !== roleFromSession) {
       const loginPath = user.role === "TENANT" ? "/login/tenant" : "/login/user";
       return res.redirect(`${FRONTEND_URL}${loginPath}?error=email_registered_with_different_role`);
@@ -49,7 +49,7 @@ export const facebookCallback = async (req: Request, res: Response) => {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      user = await prisma.user.create({ data: { email, username, role: roleFromSession, isVerified: true } });
+      user = await prisma.user.create({ data: { email, username, role: roleFromSession, isVerified: true, isEmailVerified: true } });
     } else if (user.role !== roleFromSession) {
       const loginPath = user.role === "TENANT" ? "/login/tenant" : "/login/user";
       return res.redirect(`${FRONTEND_URL}${loginPath}?error=email_registered_with_different_role`);

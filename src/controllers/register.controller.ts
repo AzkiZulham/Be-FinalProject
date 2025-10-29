@@ -4,6 +4,26 @@ import { prisma } from "../config/prisma";
 import { Role } from "@prisma/client";
 import { sendVerificationEmail } from "../utils/mailer";
 
+export const checkEmailAvailability = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query;
+
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email wajib diisi" });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return res.status(200).json({ available: false, message: "Email sudah terdaftar" });
+    }
+
+    return res.status(200).json({ available: true, message: "Email tersedia" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, username, role } = req.body;

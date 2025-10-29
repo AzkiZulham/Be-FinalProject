@@ -49,3 +49,48 @@ export const login = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Server error" });
   }
 };
+
+// Check email status for login form
+export const checkEmailStatus = async (req: Request, res: Response) => {
+  try {
+    const { email, role } = req.body;
+
+    if (!email || !role) {
+      return res.status(400).json({ error: "Email dan role wajib diisi" });
+    }
+
+    if (!["USER", "TENANT"].includes(role)) {
+      return res.status(400).json({ error: "Role tidak valid" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { email, role: role as Role },
+      select: {
+        id: true,
+        email: true,
+        isVerified: true,
+        isEmailVerified: true,
+        verifyTokenExpireAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.json({ exists: false });
+    }
+
+    // Check if token is expired
+    const tokenExpired = user.verifyTokenExpireAt
+      ? user.verifyTokenExpireAt < new Date()
+      : false;
+
+    return res.json({
+      exists: true,
+      isVerified: user.isVerified,
+      isEmailVerified: user.isEmailVerified,
+      tokenExpired,
+    });
+  } catch (err) {
+    console.error("Check email status error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};

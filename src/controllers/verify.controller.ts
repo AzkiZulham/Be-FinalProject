@@ -1,44 +1,64 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { prisma } from "../config/prisma";
 import { JWT_SECRET } from "../config/config";
 import {
   sendFirstEmailVerification,
   sendResendEmailVerification,
+  sendVerificationEmail,
 } from "../utils/mailer";
 import { Role } from "@prisma/client";
 
 // =====================================================
-// Kirim verifikasi email pertama kali (setelah akun aktif)
+// Kirim verifikasi email pertama kali (setelah akun aktif atau dari login form)
 // =====================================================
 export const sendEmailVerification = async (req: Request, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: (req.user as any)?.email },
-    });
+    let user;
+
+    // If authenticated (from profile), use req.user
+    if (req.user) {
+      user = await prisma.user.findUnique({
+        where: { email: (req.user as any)?.email },
+      });
+    } else {
+      // If from login form, use request body
+      const { email, role } = req.body;
+
+      if (!email || !role) {
+        return res.status(400).json({ message: "Email dan role wajib diisi" });
+      }
+
+      if (!["USER", "TENANT"].includes(role)) {
+        return res.status(400).json({ message: "Role tidak valid" });
+      }
+
+      user = await prisma.user.findFirst({
+        where: { email, role: role as Role },
+      });
+    }
 
     if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
     if (user.isEmailVerified)
       return res.status(400).json({ message: "Email sudah terverifikasi" });
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const token = crypto.randomBytes(32).toString("hex");
+    const expireAt = new Date();
+    expireAt.setHours(expireAt.getHours() + 1);
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         verifyToken: token,
-        verifyTokenExpireAt: new Date(Date.now() + 3600000),
+        verifyTokenExpireAt: expireAt,
       },
     });
 
-    await sendFirstEmailVerification(user.email, token);
+    await sendVerificationEmail(user.email, token, user.role);
 
     return res.status(200).json({
-      message: `Email verifikasi pertama telah dikirim ke ${user.email}. Silakan cek inbox Anda.`,
+      message: `Email verifikasi telah dikirim ke ${user.email}. Silakan cek inbox Anda.`,
     });
   } catch (error) {
     console.error("❌ Send email verification error:", error);
@@ -49,12 +69,22 @@ export const sendEmailVerification = async (req: Request, res: Response) => {
 };
 
 // =====================================================
-// Kirim ulang verifikasi email (resend / setelah update email)
+// Kirim ulang verifikasi email (resend / setelah update email / dari login form)
 // =====================================================
 export const resendEmailVerification = async (req: Request, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: (req.user as any)?.email },
+    const { email, role } = req.body;
+
+    if (!email || !role) {
+      return res.status(400).json({ message: "Email dan role wajib diisi" });
+    }
+
+    if (!["USER", "TENANT"].includes(role)) {
+      return res.status(400).json({ message: "Role tidak valid" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { email, role: role as Role },
     });
 
     if (!user) return res.status(404).json({ message: "User tidak ditemukan" });

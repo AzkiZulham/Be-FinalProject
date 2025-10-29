@@ -1,6 +1,6 @@
 import express from "express";
 import passport from "passport";
-import { register } from "../controllers/register.controller";
+import { register, checkEmailAvailability } from "../controllers/register.controller";
 import {
   googleCallback,
   facebookCallback,
@@ -15,7 +15,7 @@ import {
   checkToken,
   verifyPasswordGet,
 } from "../controllers/verifypassword.controller";
-import { login } from "../controllers/login.controller";
+import { login, checkEmailStatus } from "../controllers/login.controller";
 import { authorize, authenticate } from "../middleware/authMiddleware";
 import { Role } from "@prisma/client";
 import {
@@ -28,20 +28,17 @@ const router = express.Router();
 // ============================
 // EMAIL REGISTER & VERIFY
 // ============================
+router.get("/check-email", checkEmailAvailability);
 router.post("/register", register);
 router.get("/verify", verifyEmail);
 router.post("/verify-password", verifyPassword);
 router.post("/login", login);
+router.post("/check-email", checkEmailStatus);
 router.get("/check-token", checkToken);
 router.get("/verify-password", verifyPasswordGet);
 
-// kirim email verifikasi pertama kali (setelah akun aktif)
-router.post(
-  "/send-verification",
-  authenticate,
-  authorize([Role.USER, Role.TENANT]),
-  sendEmailVerification
-);
+// kirim email verifikasi pertama kali (setelah akun aktif atau dari login form)
+router.post("/send-verification", sendEmailVerification);
 
 // kirim ulang verifikasi email (setelah update email)
 router.post(

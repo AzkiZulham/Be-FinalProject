@@ -65,6 +65,7 @@ export const verifyPassword = async (req: Request, res: Response) => {
         verifyToken: null,
         verifyTokenExpireAt: null,
         isVerified: true,
+        isEmailVerified: true,
       },
     });
 
