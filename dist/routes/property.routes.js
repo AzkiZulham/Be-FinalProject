@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const property_controller_1 = require("../controllers/property.controller");
+const propertySearch_controller_1 = require("../controllers/propertySearch.controller");
+const router = (0, express_1.Router)();
+router.post("/calculate-price", property_controller_1.calculateBookingPrice);
+router.get("/top", property_controller_1.getTopProperties);
+router.get("/nearby", property_controller_1.getNearbyProperties);
+router.get("/:id", property_controller_1.getPropertyById);
+router.get("/", propertySearch_controller_1.getPropertyCatalog);
+exports.default = router;

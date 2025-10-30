@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const report_controller_1 = require("../controllers/report.controller");
+const express_1 = require("express");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const client_1 = require("@prisma/client");
+const propertyReport_controller_1 = require("../controllers/propertyReport.controller");
+const router = (0, express_1.Router)();
+router.get("/sales", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.TENANT]), report_controller_1.getSalesReport);
+router.get("/property-availability", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.TENANT]), propertyReport_controller_1.getPropertyReport);
+router.get("/tenant-property", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.TENANT]), propertyReport_controller_1.getTenantProperties);
+router.get("/tenant-roomtype", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.TENANT]), propertyReport_controller_1.getRoomTypesByProperty);
+exports.default = router;
