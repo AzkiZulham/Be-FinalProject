@@ -4,9 +4,8 @@ if (process.env.NODE_ENV !== "production") {
 
 import app from "./app";
 
-// const PORT = process.env.PORT || 8000;
-// app.listen(PORT, () => {
-//   console.log(`Server is running on port ${PORT}`);
-// });
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => {
+});
 
 export default app;
