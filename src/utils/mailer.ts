@@ -183,7 +183,7 @@ export const sendForgotPasswordEmail = async (
   resetToken: string
 ) => {
   const url = `${
-    process.env.FRONTEND_URL || "http://localhost:3001"
+    process.env.FRONTEND_URL
   }/reset-password?token=${resetToken}`;
   const mailOptions = {
     from: `"StayFinder" <${process.env.EMAIL_USER}>`,
