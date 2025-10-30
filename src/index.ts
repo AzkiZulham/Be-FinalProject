@@ -7,7 +7,4 @@ import { checkInReminder } from "./scheduler/checkInReminder";
 
 const PORT = process.env.PORT || 8000;
 
-app.listen(PORT, () => {
-  autoCancel();
-  checkInReminder();
-});
+app.listen(PORT, () => {});

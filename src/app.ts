@@ -18,6 +18,8 @@ import roomRoutes from "./routes/room.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 import peakSeasonRoutes from "./routes/peakSeason.routes";
 import tenantProfileRoutes from "./routes/tenantProfile.routes";
+import { autoCancel } from "./scheduler/autoCancel";
+import { checkInReminder } from "./scheduler/checkInReminder";
 
 const app = express();
 
@@ -58,5 +60,7 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/peak-season", peakSeasonRoutes);
 app.use("/api/tenant", tenantProfileRoutes);
+app.use(autoCancel);
+app.use(checkInReminder);
 
 export default app;
