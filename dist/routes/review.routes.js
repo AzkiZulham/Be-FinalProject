@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const review_controller_1 = require("../controllers/review.controller");
+const reviewValidation_1 = require("../middleware/reviewValidation");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const client_1 = require("@prisma/client");
+const router = (0, express_1.Router)();
+router.post("/", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.USER]), reviewValidation_1.createReviewValidation, review_controller_1.createReview);
+router.get("/property/:propertyId", review_controller_1.getReviewsByProperty);
+router.get("/tenant/:transactionId", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.TENANT]), review_controller_1.getTenantReview);
+router.get("/:transactionId", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.USER]), review_controller_1.getUserReview);
+router.patch("/:id/reply", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)(["TENANT"]), reviewValidation_1.replyReviewValidation, review_controller_1.tenantReply);
+exports.default = router;

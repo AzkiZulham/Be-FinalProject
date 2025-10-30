@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const uploader_1 = require("../utils/uploader");
+const payment_controller_1 = require("../controllers/payment.controller");
+const transactionValidation_1 = require("../middleware/transactionValidation");
+const midtrans_controller_1 = require("../controllers/midtrans.controller");
+const webhooks_controller_1 = require("../controllers/webhooks.controller");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const client_1 = require("@prisma/client");
+const router = (0, express_1.Router)();
+router.post("/manual", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.USER]), transactionValidation_1.manualPaymentValidation, (0, uploader_1.singleFile)("pp", "/payments"), payment_controller_1.uploadPaymentProof);
+router.post("/midtrans/create", authMiddleware_1.authenticate, (0, authMiddleware_1.authorize)([client_1.Role.USER]), midtrans_controller_1.createMidtransPayment);
+router.post("/midtrans/webhook", webhooks_controller_1.midtransWebhook);
+exports.default = router;

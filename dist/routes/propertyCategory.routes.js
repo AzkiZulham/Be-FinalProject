@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const propertyCategory_controller_1 = require("../controllers/propertyCategory.controller");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.post("/add", authMiddleware_1.authenticate, propertyCategory_controller_1.createPropertyCategory);
+router.put("/:id", authMiddleware_1.authenticate, propertyCategory_controller_1.updatePropertyCategory);
+router.delete("/:id", authMiddleware_1.authenticate, propertyCategory_controller_1.deletePropertyCategory);
+exports.default = router;
