@@ -1,11 +1,12 @@
-if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
-}
-
 import app from "./app";
 
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
-});
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+
+  const PORT = process.env.PORT || 8000;
+  app.listen(PORT, () => {
+    console.log(`Server running on ${PORT}`);
+  });
+}
 
 export default app;

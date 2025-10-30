@@ -27,7 +27,10 @@ const autoCancel_1 = require("./scheduler/autoCancel");
 const checkInReminder_1 = require("./scheduler/checkInReminder");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: [
+        "http://localhost:3000",
+        "https://fe-final-project-five.vercel.app",
+    ],
     credentials: true,
 }));
 app.use(express_1.default.json());
