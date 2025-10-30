@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+  output = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl =  env("DIRECT_URL")
+}
+
+model User {
+  id                  Int           @id @default(autoincrement())
+  role                Role
+  username            String
+  email               String        @unique
+  password            String?
+  profileImg          String?
+  resetToken          String?
+  verifyToken         String?
+  resetTokenExpireAt  DateTime?
+  verifyTokenExpireAt DateTime?
+  isVerified          Boolean       @default(false)
+  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime      @default(now())
+  isEmailVerified     Boolean       @default(false)
+  phoneNumber         String?
+  birthDate           DateTime?
+  gender              Gender?
+
+  // relations
+  properties          Property[]
+  reviews             Review[]
+  transactions        Transaction[]
+
+  @@map("users")
+}
+
+model Property {
+  id              Int             @id @default(autoincrement())
+  categoryId      Int
+  userId          Int
+  name            String
+  description     String?
+  picture         String?
+  address         String
+  city            String
+  longitude       Float?
+  latitude        Float?
+  noRekening      String?
+  destinationBank String?
+  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime        @default(now())
+
+  // relations
+  category        PropertyCategory @relation(fields: [categoryId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  reviews         Review[]
+  roomTypes       RoomType[]
+
+  @@map("properties")
+}
+
+model PropertyCategory {
+  id         Int        @id @default(autoincrement())
+  category   String
+  updatedAt  DateTime   @updatedAt
+  createdAt  DateTime   @default(now())
+
+  // relations
+  properties Property[]
+
+  @@map("propertyCategories")
+}
+
+model RoomType {
+  id           Int          @id @default(autoincrement())
+  propertyId   Int
+  roomName     String
+  price        Int
+  description  String?
+  roomImg      Json?
+  quota        Int
+  adultQty     Int
+  childQty     Int
+  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime     @default(now())
+
+  // relations
+  property     Property     @relation(fields: [propertyId], references: [id])
+  peakSeasons  PeakSeason[]
+  transactions Transaction[]
+
+  @@map("roomTypes")
+}
+
+model PeakSeason {
+  id          Int       @id @default(autoincrement())
+  roomTypeId  Int
+  isAvailable Boolean   @default(true)
+  startDate   DateTime
+  endDate     DateTime
+  percentage  Float?
+  nominal     Int?
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+
+  // relations
+  roomType    RoomType  @relation(fields: [roomTypeId], references: [id])
+
+  @@map("peakSeason")
+}
+
+model Transaction {
+  id           Int               @id @default(autoincrement())
+  userId       Int
+  roomTypeId   Int
+  status       TransactionStatus
+  checkInDate  DateTime
+  checkOutDate DateTime
+  qty          Int
+  totalPrice   Int
+  updatedAt    DateTime          @updatedAt
+  createdAt    DateTime          @default(now())
+
+  // relations
+  user         User              @relation(fields: [userId], references: [id])
+  roomType     RoomType          @relation(fields: [roomTypeId], references: [id])
+  payment      Payment?
+  review       Review?
+
+  @@map("transactions")
+}
+
+model Review {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  propertyId    Int
+  transactionId Int         @unique
+  comment       String?
+  tenantReply   String?
+  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime    @default(now())
+
+  // relations
+  property      Property    @relation(fields: [propertyId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@map("reviews")
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  transactionId Int           @unique
+  method        MethodPayment
+  paymentProof  String?
+  midtransId    String?
+  paymentType   String?
+  paymentStatus String?
+  fraudStatus   String?
+  paymentUrl    String?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // relations
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
+
+  @@map("payments")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum TransactionStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_FOR_CONFIRMATION
+  ACCEPTED
+  CANCELLED
+}
+
+enum MethodPayment {
+  TRANSFER
+  MIDTRANS
+}
+
+enum Role {
+  USER
+  TENANT
+}
