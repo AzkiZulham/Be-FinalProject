@@ -23,6 +23,8 @@ import { checkInReminder } from "./scheduler/checkInReminder";
 
 const app = express();
 
+app.set("trust proxy", 1);
+app.use(express.json());
 app.use(
   cors({
     origin: [
@@ -32,7 +34,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.options("*", cors());
 
 app.use(
   session({
