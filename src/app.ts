@@ -60,7 +60,7 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/peak-season", peakSeasonRoutes);
 app.use("/api/tenant", tenantProfileRoutes);
-app.use(autoCancel);
-app.use(checkInReminder);
+autoCancel();
+checkInReminder();
 
 export default app;

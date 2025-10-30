@@ -55,6 +55,6 @@ app.use("/api/rooms", room_routes_1.default);
 app.use("/api/dashboard", dashboard_routes_1.default);
 app.use("/api/peak-season", peakSeason_routes_1.default);
 app.use("/api/tenant", tenantProfile_routes_1.default);
-app.use(autoCancel_1.autoCancel);
-app.use(checkInReminder_1.checkInReminder);
+(0, autoCancel_1.autoCancel)();
+(0, checkInReminder_1.checkInReminder)();
 exports.default = app;
