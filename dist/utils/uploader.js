@@ -66,6 +66,7 @@ const uploadToBlob = async (file, folderName) => {
         }
         const blob = await (0, blob_1.put)(`${folderName}/${filename}`, body, {
             access: 'public',
+            token: process.env.BLOB_READ_WRITE_TOKEN,
         });
         return blob.url;
     }

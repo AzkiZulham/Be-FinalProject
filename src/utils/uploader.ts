@@ -78,6 +78,7 @@ export const uploadToBlob = async (file: Express.Multer.File, folderName: string
 
     const blob = await put(`${folderName}/${filename}`, body, {
       access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
     return blob.url;
