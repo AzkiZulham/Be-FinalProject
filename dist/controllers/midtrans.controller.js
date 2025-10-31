@@ -42,10 +42,6 @@ const createMidtransPayment = async (req, res) => {
         }
         const orderId = `trx-${transaction.id}-${Date.now()}`;
         const itemName = `${transaction.roomType.property.name || "Property"} - ${transaction.roomType.roomName || "Room"}`;
-        // Set expiry time to 2 minutes from now to avoid timing issues
-        const expiryTime = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
-        const pad = (n) => String(n).padStart(2, "0");
-        const startTime = `${expiryTime.getFullYear()}-${pad(expiryTime.getMonth() + 1)}-${pad(expiryTime.getDate())} ${pad(expiryTime.getHours())}:${pad(expiryTime.getMinutes())}:${pad(expiryTime.getSeconds())} +0700`;
         const paramater = {
             transaction_details: {
                 order_id: orderId,
@@ -65,11 +61,6 @@ const createMidtransPayment = async (req, res) => {
             ],
             callbacks: {
                 finish: `${process.env.FRONTEND_URL}/payment/finish`,
-            },
-            expiry: {
-                start_time: startTime,
-                unit: "minutes",
-                duration: 60,
             },
         };
         const snapResp = await midtrans_1.midtransSnap.createTransaction(paramater);
