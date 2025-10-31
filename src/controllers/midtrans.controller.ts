@@ -48,15 +48,6 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
       transaction.roomType.roomName || "Room"
     }`;
 
-    // Set expiry time to 2 minutes from now to avoid timing issues
-    const expiryTime = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const startTime = `${expiryTime.getFullYear()}-${pad(
-      expiryTime.getMonth() + 1
-    )}-${pad(expiryTime.getDate())} ${pad(expiryTime.getHours())}:${pad(
-      expiryTime.getMinutes()
-    )}:${pad(expiryTime.getSeconds())} +0700`;
-
     const paramater: any = {
       transaction_details: {
         order_id: orderId,
@@ -76,11 +67,6 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
       ],
       callbacks: {
         finish: `${process.env.FRONTEND_URL}/payment/finish`,
-      },
-      expiry: {
-        start_time: startTime,
-        unit: "minutes",
-        duration: 60,
       },
     };
 
