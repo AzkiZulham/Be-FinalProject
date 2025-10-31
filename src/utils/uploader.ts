@@ -5,7 +5,10 @@ import fs from "fs";
 
 type Callback = (error: Error | null, destination: string) => void;
 
-const defaultDir = join(__dirname, "../../public");
+const defaultDir =
+  process.env.NODE_ENV === "production"
+    ? "/tmp"
+    : join(__dirname, "../../public");
 
 export const memoryUploader = () => {
   const storage = multer.memoryStorage();

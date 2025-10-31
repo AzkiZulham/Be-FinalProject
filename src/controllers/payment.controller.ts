@@ -23,7 +23,8 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "File bukti bayar harus diunggah" });
 
     const relativePath = file.path;
-    fileToCleanup = path.join("public", relativePath);
+    const baseDir = process.env.NODE_ENV === "production" ? "/tmp" : "public";
+    fileToCleanup = path.join(baseDir, relativePath);
 
     const allowed = ["image/jpeg", "image/png"];
 
