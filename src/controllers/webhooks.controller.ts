@@ -16,7 +16,7 @@ export const midtransWebhook = async (req: Request, res: Response) => {
       settlement_time,
     } = req.body || {};
 
-    const serverKey = process.env.MIDTRANS_SERVER_KEY as string;
+    const serverKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY as string;
     const payload = `${order_id}${status_code}${gross_amount}${serverKey}`;
     const expected = crypto.createHash("sha512").update(payload).digest("hex");
 
