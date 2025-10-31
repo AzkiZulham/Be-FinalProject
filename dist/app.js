@@ -51,6 +51,15 @@ app.use((0, express_session_1.default)({
 app.use(express_1.default.static("public"));
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
+// Static file serving for payments - handle both development and production
+if (process.env.NODE_ENV === "production") {
+    // In production, serve from /tmp for uploaded files
+    app.use("/payments", express_1.default.static("/tmp/payments"));
+}
+else {
+    // In development, serve from public/payments
+    app.use("/payments", express_1.default.static(path_1.default.join(__dirname, "../public/payments")));
+}
 app.use("/api/auth", auth_routes_1.default);
 app.use("/api/transaction", transaction_routes_1.default);
 app.use("/api/payment", payment_routes_1.default);
