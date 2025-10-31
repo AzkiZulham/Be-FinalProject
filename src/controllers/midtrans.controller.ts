@@ -48,13 +48,14 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
       transaction.roomType.roomName || "Room"
     }`;
 
-    const now = new Date();
+    // Set expiry time to 2 minutes from now to avoid timing issues
+    const expiryTime = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
     const pad = (n: number) => String(n).padStart(2, "0");
-    const startTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-      now.getDate()
-    )} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(
-      now.getSeconds()
-    )} +0700`;
+    const startTime = `${expiryTime.getFullYear()}-${pad(
+      expiryTime.getMonth() + 1
+    )}-${pad(expiryTime.getDate())} ${pad(expiryTime.getHours())}:${pad(
+      expiryTime.getMinutes()
+    )}:${pad(expiryTime.getSeconds())} +0700`;
 
     const paramater: any = {
       transaction_details: {
@@ -110,8 +111,15 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
     });
 
     return res.json({ token, redirect_url, orderId });
-  } catch (error) {
+  } catch (error: any) {
     console.error("createMidtrans error: ", error);
-    return res.status(500).json({ error: "Gagal membuat midtrans" });
+    console.error("Error stack: ", error?.stack);
+    console.error("Request body: ", req.body);
+    console.error("Auth user: ", (req as any).user);
+    return res.status(500).json({
+      error: "Gagal membuat midtrans",
+      details:
+        process.env.NODE_ENV === "development" ? error?.message : undefined,
+    });
   }
 };
