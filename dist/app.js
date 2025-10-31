@@ -32,6 +32,7 @@ app.use((0, cors_1.default)({
         const allowed = [
             "http://localhost:3000",
             "https://fe-final-project-five.vercel.app",
+            "https://fe-final-project-five.vercel.app/",
             "https://fe-final-project-alpha.vercel.app",
         ];
         if (!origin || allowed.includes(origin)) {
