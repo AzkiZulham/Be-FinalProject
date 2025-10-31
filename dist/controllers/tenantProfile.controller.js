@@ -138,11 +138,15 @@ const updateProfileImage = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: "File gambar tidak ditemukan" });
         }
-        // Handle path based on environment
-        const isProduction = process.env.NODE_ENV === "production";
-        const imagePath = isProduction
-            ? `/tmp/profile/${req.file.filename}` // Temporary path for Vercel
-            : `/uploads/profile/${req.file.filename}`; // Local path for development
+        // Upload to Vercel Blob in production, use local path in development
+        let imagePath;
+        if (process.env.NODE_ENV === "production") {
+            const { uploadToBlob } = await Promise.resolve().then(() => __importStar(require("../utils/uploader")));
+            imagePath = await uploadToBlob(req.file, "profile");
+        }
+        else {
+            imagePath = `/uploads/profile/${req.file.filename}`;
+        }
         const user = await prisma_1.prisma.user.update({
             where: { id: userId },
             data: { profileImg: imagePath },

@@ -3,11 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.singleFile = exports.memoryUploader = void 0;
+exports.uploadToBlob = exports.singleFile = exports.memoryUploader = void 0;
 const multer_1 = __importDefault(require("multer"));
 const path_1 = require("path");
 const fs_1 = __importDefault(require("fs"));
-const defaultDir = (0, path_1.join)(__dirname, "../../public");
+const blob_1 = require("@vercel/blob");
+const defaultDir = process.env.NODE_ENV === "production"
+    ? "/tmp"
+    : (0, path_1.join)(__dirname, "../../public");
 const memoryUploader = () => {
     const storage = multer_1.default.memoryStorage();
     return (0, multer_1.default)({ storage });
@@ -46,3 +49,19 @@ const singleFile = (filePrefix, folderName) => {
     ];
 };
 exports.singleFile = singleFile;
+const uploadToBlob = async (file, folderName) => {
+    try {
+        const originalNameParts = file.originalname.split(".");
+        const fileExtension = originalNameParts[originalNameParts.length - 1];
+        const filename = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
+        const blob = await (0, blob_1.put)(`${folderName}/${filename}`, file.buffer, {
+            access: 'public',
+        });
+        return blob.url;
+    }
+    catch (error) {
+        console.error('Error uploading to Vercel Blob:', error);
+        throw error;
+    }
+};
+exports.uploadToBlob = uploadToBlob;

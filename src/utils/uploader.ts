@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { join } from "path";
 import fs from "fs";
+import { put } from "@vercel/blob";
 
 type Callback = (error: Error | null, destination: string) => void;
 
@@ -55,4 +56,21 @@ export const singleFile = (filePrefix: string, folderName?: string) => {
       next();
     },
   ];
+};
+
+export const uploadToBlob = async (file: Express.Multer.File, folderName: string) => {
+  try {
+    const originalNameParts = file.originalname.split(".");
+    const fileExtension = originalNameParts[originalNameParts.length - 1];
+    const filename = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
+
+    const blob = await put(`${folderName}/${filename}`, file.buffer, {
+      access: 'public',
+    });
+
+    return blob.url;
+  } catch (error) {
+    console.error('Error uploading to Vercel Blob:', error);
+    throw error;
+  }
 };
