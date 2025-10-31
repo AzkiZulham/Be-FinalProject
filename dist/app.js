@@ -27,16 +27,19 @@ const autoCancel_1 = require("./scheduler/autoCancel");
 const checkInReminder_1 = require("./scheduler/checkInReminder");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://fe-final-project-five.vercel.app",
+    "https://fe-final-project-alpha.vercel.app"
+];
 app.use((0, cors_1.default)({
-    origin: (origin, callback) => {
-        const allowed = [
-            "http://localhost:3000",
-            "https://fe-final-project-five.vercel.app",
-        ];
-        if (!origin || allowed.includes(origin)) {
-            return callback(null, true);
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
         }
-        return callback(new Error("Not allowed by CORS"), false);
+        else {
+            callback(new Error("Not allowed by CORS"));
+        }
     },
     credentials: true,
 }));
