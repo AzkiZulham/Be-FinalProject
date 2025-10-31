@@ -54,7 +54,17 @@ const uploadToBlob = async (file, folderName) => {
         const originalNameParts = file.originalname.split(".");
         const fileExtension = originalNameParts[originalNameParts.length - 1];
         const filename = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
-        const blob = await (0, blob_1.put)(`${folderName}/${filename}`, file.buffer, {
+        let body;
+        if (file.buffer) {
+            body = file.buffer;
+        }
+        else if (file.path) {
+            body = fs_1.default.readFileSync(file.path);
+        }
+        else {
+            throw new Error('File buffer or path is required for upload');
+        }
+        const blob = await (0, blob_1.put)(`${folderName}/${filename}`, body, {
             access: 'public',
         });
         return blob.url;

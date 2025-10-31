@@ -64,7 +64,16 @@ export const uploadToBlob = async (file: Express.Multer.File, folderName: string
     const fileExtension = originalNameParts[originalNameParts.length - 1];
     const filename = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
 
-    const blob = await put(`${folderName}/${filename}`, file.buffer, {
+    let body: Buffer;
+    if (file.buffer) {
+      body = file.buffer;
+    } else if (file.path) {
+      body = fs.readFileSync(file.path);
+    } else {
+      throw new Error('File buffer or path is required for upload');
+    }
+
+    const blob = await put(`${folderName}/${filename}`, body, {
       access: 'public',
     });
 
