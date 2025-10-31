@@ -24,17 +24,20 @@ import { checkInReminder } from "./scheduler/checkInReminder";
 const app = express();
 
 app.use(express.json());
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://fe-final-project-five.vercel.app",
+  "https://fe-final-project-alpha.vercel.app"
+];
+
 app.use(
   cors({
-    origin: (origin, callback) => {
-      const allowed = [
-        "http://localhost:3000",
-        "https://fe-final-project-five.vercel.app",
-      ];
-      if (!origin || allowed.includes(origin)) {
-        return callback(null, true);
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
       }
-      return callback(new Error("Not allowed by CORS"), false);
     },
     credentials: true,
   })
