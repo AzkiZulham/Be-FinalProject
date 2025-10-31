@@ -7,7 +7,9 @@ exports.singleFile = exports.memoryUploader = void 0;
 const multer_1 = __importDefault(require("multer"));
 const path_1 = require("path");
 const fs_1 = __importDefault(require("fs"));
-const defaultDir = (0, path_1.join)(__dirname, "../../public");
+const defaultDir = process.env.NODE_ENV === "production"
+    ? "/tmp"
+    : (0, path_1.join)(__dirname, "../../public");
 const memoryUploader = () => {
     const storage = multer_1.default.memoryStorage();
     return (0, multer_1.default)({ storage });

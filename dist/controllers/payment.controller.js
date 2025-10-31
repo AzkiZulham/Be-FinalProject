@@ -24,7 +24,8 @@ const uploadPaymentProof = async (req, res) => {
         if (!file)
             return res.status(400).json({ error: "File bukti bayar harus diunggah" });
         const relativePath = file.path;
-        fileToCleanup = path_1.default.join("public", relativePath);
+        const baseDir = process.env.NODE_ENV === "production" ? "/tmp" : "public";
+        fileToCleanup = path_1.default.join(baseDir, relativePath);
         const allowed = ["image/jpeg", "image/png"];
         if (!allowed.includes(file.mimetype)) {
             await promises_1.default.unlink(fileToCleanup).catch(() => { });
@@ -95,7 +96,8 @@ const uploadPaymentProof = async (req, res) => {
             });
             // setelah DB sukses, baru hapus file lama (kalau ada dan berbeda)
             if (existing?.paymentProof && existing.paymentProof !== relativePath) {
-                const oldPath = path_1.default.join("public", existing.paymentProof);
+                const oldBaseDir = process.env.NODE_ENV === "production" ? "/tmp" : "public";
+                const oldPath = path_1.default.join(oldBaseDir, existing.paymentProof);
                 promises_1.default.unlink(oldPath).catch(() => { });
             }
         });
@@ -117,7 +119,13 @@ const uploadPaymentProof = async (req, res) => {
             await promises_1.default.unlink(fileToCleanup).catch(() => { });
         }
         console.error("Upload Manual Error: ", error);
-        return res.status(500).json({ error: "Gagal Menggunggah bukti bayar" });
+        console.error("Error stack: ", error.stack);
+        console.error("Request body: ", req.body);
+        console.error("File info: ", req.file);
+        return res.status(500).json({
+            error: "Gagal Menggunggah bukti bayar",
+            details: process.env.NODE_ENV === "development" ? error.message : undefined,
+        });
     }
 };
 exports.uploadPaymentProof = uploadPaymentProof;
