@@ -26,7 +26,6 @@ const tenantProfile_routes_1 = __importDefault(require("./routes/tenantProfile.r
 const autoCancel_1 = require("./scheduler/autoCancel");
 const checkInReminder_1 = require("./scheduler/checkInReminder");
 const app = (0, express_1.default)();
-app.set("trust proxy", 1);
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
