@@ -103,6 +103,9 @@ const createMidtransPayment = async (req, res) => {
         console.error("Error stack: ", error?.stack);
         console.error("Request body: ", req.body);
         console.error("Auth user: ", req.user);
+        console.error("MIDTRANS_SANDBOX_SERVER_KEY exists: ", !!process.env.MIDTRANS_SANDBOX_SERVER_KEY);
+        console.error("MIDTRANS_SANDBOX_CLIENT_KEY exists: ", !!process.env.MIDTRANS_SANDBOX_CLIENT_KEY);
+        console.error("MIDTRANS_IS_PRODUCTION: ", process.env.MIDTRANS_IS_PRODUCTION);
         return res.status(500).json({
             error: "Gagal membuat midtrans",
             details: process.env.NODE_ENV === "development" ? error?.message : undefined,
