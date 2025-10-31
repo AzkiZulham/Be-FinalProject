@@ -124,7 +124,11 @@ export const updateProfileImage = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "File gambar tidak ditemukan" });
     }
 
-    const imagePath = `/uploads/profile/${req.file.filename}`;
+    // Handle path based on environment
+    const isProduction = process.env.NODE_ENV === "production";
+    const imagePath = isProduction
+      ? `/tmp/profile/${req.file.filename}` // Temporary path for Vercel
+      : `/uploads/profile/${req.file.filename}`; // Local path for development
 
     const user = await prisma.user.update({
       where: { id: userId },

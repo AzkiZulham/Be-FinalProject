@@ -40,7 +40,10 @@ const createRoom = async (req, res) => {
         const files = req.files;
         let roomImgPaths = [];
         if (files && files.length > 0) {
-            roomImgPaths = files.map(file => `/uploads/rooms/${file.filename}`);
+            // Handle path based on environment
+            const isProduction = process.env.NODE_ENV === "production";
+            const basePath = isProduction ? "/tmp/rooms/" : "/uploads/rooms/";
+            roomImgPaths = files.map(file => `${basePath}${file.filename}`);
         }
         const newRoom = await prisma_1.prisma.roomType.create({
             data: {
@@ -95,7 +98,10 @@ const updateRoom = async (req, res) => {
         const files = req.files;
         let roomImgPaths = [];
         if (files && files.length > 0) {
-            roomImgPaths = files.map(file => `/uploads/rooms/${file.filename}`);
+            // Handle path based on environment
+            const isProduction = process.env.NODE_ENV === "production";
+            const basePath = isProduction ? "/tmp/rooms/" : "/uploads/rooms/";
+            roomImgPaths = files.map(file => `${basePath}${file.filename}`);
         }
         const updated = await prisma_1.prisma.roomType.update({
             where: {
