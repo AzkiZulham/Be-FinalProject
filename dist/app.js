@@ -26,23 +26,15 @@ const tenantProfile_routes_1 = __importDefault(require("./routes/tenantProfile.r
 const autoCancel_1 = require("./scheduler/autoCancel");
 const checkInReminder_1 = require("./scheduler/checkInReminder");
 const app = (0, express_1.default)();
-app.use(express_1.default.json());
-const allowedOrigins = [
-    "http://localhost:3000",
-    "https://fe-final-project-five.vercel.app",
-    "https://fe-final-project-alpha.vercel.app"
-];
 app.use((0, cors_1.default)({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        }
-        else {
-            callback(new Error("Not allowed by CORS"));
-        }
-    },
+    origin: [
+        "http://localhost:3000",
+        "https://fe-final-project-five.vercel.app",
+        "https://fe-final-project-alpha.vercel.app",
+    ],
     credentials: true,
 }));
+app.use(express_1.default.json());
 app.use((0, express_session_1.default)({
     secret: process.env.SESSION_SECRET || "supersecret",
     resave: false,
