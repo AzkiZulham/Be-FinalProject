@@ -124,11 +124,14 @@ export const updateProfileImage = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "File gambar tidak ditemukan" });
     }
 
-    // Handle path based on environment
-    const isProduction = process.env.NODE_ENV === "production";
-    const imagePath = isProduction
-      ? `/tmp/profile/${req.file.filename}` // Temporary path for Vercel
-      : `/uploads/profile/${req.file.filename}`; // Local path for development
+    // Upload to Vercel Blob in production, use local path in development
+    let imagePath: string;
+    if (process.env.NODE_ENV === "production") {
+      const { uploadToBlob } = await import("../utils/uploader");
+      imagePath = await uploadToBlob(req.file, "profile");
+    } else {
+      imagePath = `/uploads/profile/${req.file.filename}`;
+    }
 
     const user = await prisma.user.update({
       where: { id: userId },

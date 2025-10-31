@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteRoom = exports.updateRoom = exports.getRoomById = exports.createRoom = exports.getAllRooms = void 0;
 const prisma_1 = require("../config/prisma");
@@ -40,10 +73,14 @@ const createRoom = async (req, res) => {
         const files = req.files;
         let roomImgPaths = [];
         if (files && files.length > 0) {
-            // Handle path based on environment
-            const isProduction = process.env.NODE_ENV === "production";
-            const basePath = isProduction ? "/tmp/rooms/" : "/uploads/rooms/";
-            roomImgPaths = files.map(file => `${basePath}${file.filename}`);
+            // Upload to Vercel Blob in production, use local path in development
+            if (process.env.NODE_ENV === "production") {
+                const { uploadToBlob } = await Promise.resolve().then(() => __importStar(require("../utils/uploader")));
+                roomImgPaths = await Promise.all(files.map(file => uploadToBlob(file, "rooms")));
+            }
+            else {
+                roomImgPaths = files.map(file => `/uploads/rooms/${file.filename}`);
+            }
         }
         const newRoom = await prisma_1.prisma.roomType.create({
             data: {
@@ -98,10 +135,14 @@ const updateRoom = async (req, res) => {
         const files = req.files;
         let roomImgPaths = [];
         if (files && files.length > 0) {
-            // Handle path based on environment
-            const isProduction = process.env.NODE_ENV === "production";
-            const basePath = isProduction ? "/tmp/rooms/" : "/uploads/rooms/";
-            roomImgPaths = files.map(file => `${basePath}${file.filename}`);
+            // Upload to Vercel Blob in production, use local path in development
+            if (process.env.NODE_ENV === "production") {
+                const { uploadToBlob } = await Promise.resolve().then(() => __importStar(require("../utils/uploader")));
+                roomImgPaths = await Promise.all(files.map(file => uploadToBlob(file, "rooms")));
+            }
+            else {
+                roomImgPaths = files.map(file => `/uploads/rooms/${file.filename}`);
+            }
         }
         const updated = await prisma_1.prisma.roomType.update({
             where: {

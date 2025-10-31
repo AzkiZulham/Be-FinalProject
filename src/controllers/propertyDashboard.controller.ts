@@ -188,11 +188,13 @@ export const updateProperty = async (req: Request, res: Response) => {
         }
       }
       const file = (req.files as any).picture[0];
-      // Handle path based on environment
-      const isProduction = process.env.NODE_ENV === "production";
-      picturePath = isProduction
-        ? `/tmp/properties/${file.filename}` // Temporary path for Vercel
-        : `/uploads/properties/${file.filename}`; // Local path for development
+      // Upload to Vercel Blob in production, use local path in development
+      if (process.env.NODE_ENV === "production") {
+        const { uploadToBlob } = await import("../utils/uploader");
+        picturePath = await uploadToBlob(file, "properties");
+      } else {
+        picturePath = `/uploads/properties/${file.filename}`;
+      }
     } else if (req.body.removeOldPicture === "true") {
       if (picturePath) {
         const oldPath = path.join(__dirname, "../../public", picturePath.replace(/^\//, ""));
@@ -273,11 +275,17 @@ export const updateProperty = async (req: Request, res: Response) => {
       const roomFiles = files[key] || [];
 
       if (roomFiles.length > 0) {
-        // Handle path based on environment
-        const isProduction = process.env.NODE_ENV === "production";
-        const basePath = isProduction ? "/tmp/rooms/" : "/uploads/rooms/";
-        const newPaths = roomFiles.map((file: Express.Multer.File) => `${basePath}${file.filename}`);
-        roomImgArray = [...roomImgArray, ...newPaths];
+        // Upload to Vercel Blob in production, use local path in development
+        if (process.env.NODE_ENV === "production") {
+          const { uploadToBlob } = await import("../utils/uploader");
+          const newPaths = await Promise.all(
+            roomFiles.map((file: any) => uploadToBlob(file, "rooms"))
+          );
+          roomImgArray = [...roomImgArray, ...newPaths];
+        } else {
+          const newPaths = roomFiles.map((file: any) => `/uploads/rooms/${file.filename}`);
+          roomImgArray = [...roomImgArray, ...newPaths];
+        }
       }
 
       const roomImgData = roomImgArray.length > 0 ? roomImgArray : null;
@@ -367,11 +375,13 @@ export const createProperty = async (req: Request, res: Response) => {
 
     let picturePath = null;
     if (files?.picture && files.picture[0]) {
-      // Handle path based on environment
-      const isProduction = process.env.NODE_ENV === "production";
-      picturePath = isProduction
-        ? `/tmp/properties/${files.picture[0].filename}` // Temporary path for Vercel
-        : `/uploads/properties/${files.picture[0].filename}`; // Local path for development
+      // Upload to Vercel Blob in production, use local path in development
+      if (process.env.NODE_ENV === "production") {
+        const { uploadToBlob } = await import("../utils/uploader");
+        picturePath = await uploadToBlob(files.picture[0], "properties");
+      } else {
+        picturePath = `/uploads/properties/${files.picture[0].filename}`;
+      }
     }
 
     const property = await prisma.property.create({
@@ -406,16 +416,27 @@ export const createProperty = async (req: Request, res: Response) => {
 
         const roomImgKey = `roomImg_${i}`;
         if (files && files[roomImgKey]) {
-          // Handle path based on environment
-          const isProduction = process.env.NODE_ENV === "production";
-          const basePath = isProduction ? "/tmp/rooms/" : "/uploads/rooms/";
-          const imgPaths = files[roomImgKey].map(file => `${basePath}${file.filename}`);
-          await prisma.roomType.update({
-            where: { id: newRoomType.id },
-            data: {
-              roomImg: imgPaths.length > 0 ? imgPaths : undefined,
-            },
-          });
+          // Upload to Vercel Blob in production, use local path in development
+          if (process.env.NODE_ENV === "production") {
+            const { uploadToBlob } = await import("../utils/uploader");
+            const imgPaths = await Promise.all(
+              files[roomImgKey].map((file: any) => uploadToBlob(file, "rooms"))
+            );
+            await prisma.roomType.update({
+              where: { id: newRoomType.id },
+              data: {
+                roomImg: imgPaths.length > 0 ? imgPaths : undefined,
+              },
+            });
+          } else {
+            const imgPaths = files[roomImgKey].map((file: any) => `/uploads/rooms/${file.filename}`);
+            await prisma.roomType.update({
+              where: { id: newRoomType.id },
+              data: {
+                roomImg: imgPaths.length > 0 ? imgPaths : undefined,
+              },
+            });
+          }
         }
       }
     }
