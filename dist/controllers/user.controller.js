@@ -116,7 +116,11 @@ const uploadAvatar = async (req, res) => {
                 .status(400)
                 .json({ success: false, message: "No file uploaded" });
         }
-        const imagePath = `/uploads/user-profile/${req.file.filename}`;
+        // Handle path based on environment
+        const isProduction = process.env.NODE_ENV === "production";
+        const imagePath = isProduction
+            ? `/tmp/user-profile/${req.file.filename}` // Temporary path for Vercel
+            : `/uploads/user-profile/${req.file.filename}`; // Local path for development
         await prisma_1.prisma.user.update({
             where: { id: userId },
             data: { profileImg: imagePath },

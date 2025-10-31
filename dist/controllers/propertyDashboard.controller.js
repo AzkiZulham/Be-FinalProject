@@ -164,7 +164,11 @@ const updateProperty = async (req, res) => {
                 }
             }
             const file = req.files.picture[0];
-            picturePath = `/uploads/properties/${file.filename}`;
+            // Handle path based on environment
+            const isProduction = process.env.NODE_ENV === "production";
+            picturePath = isProduction
+                ? `/tmp/properties/${file.filename}` // Temporary path for Vercel
+                : `/uploads/properties/${file.filename}`; // Local path for development
         }
         else if (req.body.removeOldPicture === "true") {
             if (picturePath) {
@@ -236,7 +240,10 @@ const updateProperty = async (req, res) => {
             const key = `roomImg_${i}`;
             const roomFiles = files[key] || [];
             if (roomFiles.length > 0) {
-                const newPaths = roomFiles.map((file) => `/uploads/rooms/${file.filename}`);
+                // Handle path based on environment
+                const isProduction = process.env.NODE_ENV === "production";
+                const basePath = isProduction ? "/tmp/rooms/" : "/uploads/rooms/";
+                const newPaths = roomFiles.map((file) => `${basePath}${file.filename}`);
                 roomImgArray = [...roomImgArray, ...newPaths];
             }
             const roomImgData = roomImgArray.length > 0 ? roomImgArray : null;
@@ -312,7 +319,11 @@ const createProperty = async (req, res) => {
         }
         let picturePath = null;
         if (files?.picture && files.picture[0]) {
-            picturePath = `/uploads/properties/${files.picture[0].filename}`;
+            // Handle path based on environment
+            const isProduction = process.env.NODE_ENV === "production";
+            picturePath = isProduction
+                ? `/tmp/properties/${files.picture[0].filename}` // Temporary path for Vercel
+                : `/uploads/properties/${files.picture[0].filename}`; // Local path for development
         }
         const property = await prisma_1.prisma.property.create({
             data: {
@@ -344,7 +355,10 @@ const createProperty = async (req, res) => {
                 });
                 const roomImgKey = `roomImg_${i}`;
                 if (files && files[roomImgKey]) {
-                    const imgPaths = files[roomImgKey].map(file => `/uploads/rooms/${file.filename}`);
+                    // Handle path based on environment
+                    const isProduction = process.env.NODE_ENV === "production";
+                    const basePath = isProduction ? "/tmp/rooms/" : "/uploads/rooms/";
+                    const imgPaths = files[roomImgKey].map(file => `${basePath}${file.filename}`);
                     await prisma_1.prisma.roomType.update({
                         where: { id: newRoomType.id },
                         data: {

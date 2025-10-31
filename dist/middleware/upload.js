@@ -7,9 +7,21 @@ exports.mixedUpload = exports.profileUploadUser = exports.profileUpload = export
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+// Helper function to get upload directory based on environment
+const getUploadDir = (subDir) => {
+    const isProduction = process.env.NODE_ENV === "production";
+    if (isProduction) {
+        // Use /tmp for Vercel (temporary storage)
+        return path_1.default.join("/tmp", subDir);
+    }
+    else {
+        // Use local public/uploads for development
+        return path_1.default.join(__dirname, "../../public/uploads", subDir);
+    }
+};
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
-        const dir = path_1.default.join(__dirname, "../../public/uploads/rooms");
+        const dir = getUploadDir("rooms");
         if (!fs_1.default.existsSync(dir)) {
             fs_1.default.mkdirSync(dir, { recursive: true });
         }
@@ -22,7 +34,7 @@ const storage = multer_1.default.diskStorage({
 });
 const roomStorage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
-        const dir = path_1.default.join(__dirname, "../../public/uploads/rooms");
+        const dir = getUploadDir("rooms");
         if (!fs_1.default.existsSync(dir)) {
             fs_1.default.mkdirSync(dir, { recursive: true });
         }
@@ -36,7 +48,7 @@ const roomStorage = multer_1.default.diskStorage({
 exports.roomUpload = (0, multer_1.default)({ storage: roomStorage });
 const propertyStorage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
-        const dir = path_1.default.join(__dirname, "../../public/uploads/properties");
+        const dir = getUploadDir("properties");
         if (!fs_1.default.existsSync(dir)) {
             fs_1.default.mkdirSync(dir, { recursive: true });
         }
@@ -51,7 +63,7 @@ exports.upload = (0, multer_1.default)({ storage });
 exports.propertyUpload = (0, multer_1.default)({ storage: propertyStorage });
 const profileStorage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
-        const dir = path_1.default.join(__dirname, "../../public/uploads/profile");
+        const dir = getUploadDir("profile");
         if (!fs_1.default.existsSync(dir)) {
             fs_1.default.mkdirSync(dir, { recursive: true });
         }
@@ -65,7 +77,7 @@ const profileStorage = multer_1.default.diskStorage({
 exports.profileUpload = (0, multer_1.default)({ storage: profileStorage });
 const profileStorageUser = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
-        const dir = path_1.default.join(__dirname, "../../public/uploads/user-profile");
+        const dir = getUploadDir("user-profile");
         if (!fs_1.default.existsSync(dir)) {
             fs_1.default.mkdirSync(dir, { recursive: true });
         }
@@ -81,13 +93,13 @@ const mixedStorage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         let dir;
         if (file.fieldname === 'picture') {
-            dir = path_1.default.join(__dirname, "../../public/uploads/properties");
+            dir = getUploadDir("properties");
         }
         else if (file.fieldname.startsWith('roomImg_')) {
-            dir = path_1.default.join(__dirname, "../../public/uploads/rooms");
+            dir = getUploadDir("rooms");
         }
         else {
-            dir = path_1.default.join(__dirname, "../../public/uploads/properties");
+            dir = getUploadDir("properties");
         }
         if (!fs_1.default.existsSync(dir)) {
             fs_1.default.mkdirSync(dir, { recursive: true });
