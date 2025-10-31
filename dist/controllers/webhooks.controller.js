@@ -9,7 +9,7 @@ const prisma_1 = require("../config/prisma");
 const midtransWebhook = async (req, res) => {
     try {
         const { order_id, transaction_status, fraud_status, payment_type, gross_amount, status_code, signature_key, settlement_time, } = req.body || {};
-        const serverKey = process.env.MIDTRANS_SERVER_KEY;
+        const serverKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY;
         const payload = `${order_id}${status_code}${gross_amount}${serverKey}`;
         const expected = crypto_1.default.createHash("sha512").update(payload).digest("hex");
         if (expected !== signature_key) {
