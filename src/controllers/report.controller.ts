@@ -145,7 +145,10 @@ export const getSalesReport = async (req: Request, res: Response) => {
       if (groupBy === "transaction") {
         trxItems.push({
           transactionId: row.id,
-          orderNumber: `ORD-${row.id}-${new Date(row.createdAt).getTime()}`,
+          orderNumber: `ORD-${row.id}-${new Date(row.createdAt)
+            .toISOString()
+            .slice(0, 10)
+            .replace(/-/g, "")}`,
           paidAt,
           method,
           amount,
