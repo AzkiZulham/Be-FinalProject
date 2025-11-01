@@ -5,7 +5,7 @@ const MIDTRANS_BASE = process.env.MIDTRANS_IS_PRODUCTION === "true"
     ? "https://api.midtrans.com"
     : "https://api.sandbox.midtrans.com";
 async function expireMidtrans(orderId) {
-    const serverKey = process.env.MIDTRANS_SERVER_KEY || "";
+    const serverKey = process.env.MIDTRANS_SANDBOX_SERVER_KEY || "";
     const auth = Buffer.from(serverKey + ":").toString("base64");
     const resp = await fetch(`${MIDTRANS_BASE}/v2/${orderId}/expire`, {
         method: "POST",
