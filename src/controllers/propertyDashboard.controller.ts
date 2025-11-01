@@ -188,7 +188,6 @@ export const updateProperty = async (req: Request, res: Response) => {
         }
       }
       const file = (req.files as any).picture[0];
-      // Upload to Vercel Blob in production, use local path in development
       if (process.env.NODE_ENV === "production") {
         const { uploadToBlob } = await import("../utils/uploader");
         picturePath = await uploadToBlob(file, "properties");
@@ -269,13 +268,27 @@ export const updateProperty = async (req: Request, res: Response) => {
       const adultQty = room.adultQty !== undefined ? Number(room.adultQty) : 1;
       const childQty = room.childQty !== undefined ? Number(room.childQty) : 0;
 
+      // Handle deleted images
+      if (room.deletedImages && Array.isArray(room.deletedImages)) {
+        for (const imgPath of room.deletedImages) {
+          const rel = imgPath.replace(/^\//, "");
+          const filePath = path.join(__dirname, "../../public", rel);
+          if (fs.existsSync(filePath)) {
+            try {
+              fs.unlinkSync(filePath);
+            } catch (err) {
+              console.error("Error deleting room image:", err);
+            }
+          }
+        }
+      }
+
       let roomImgArray: string[] = Array.isArray(room.roomImg) ? room.roomImg : [];
 
       const key = `roomImg_${i}`;
       const roomFiles = files[key] || [];
 
       if (roomFiles.length > 0) {
-        // Upload to Vercel Blob in production, use local path in development
         if (process.env.NODE_ENV === "production") {
           const { uploadToBlob } = await import("../utils/uploader");
           const newPaths = await Promise.all(
@@ -298,10 +311,8 @@ export const updateProperty = async (req: Request, res: Response) => {
           quota,
           adultQty,
           childQty,
+          roomImg: roomImgData,
         };
-        if (roomImgData !== null) {
-          updateData.roomImg = roomImgData;
-        }
         await prisma.roomType.update({
           where: { id: Number(room.id) },
           data: updateData,
@@ -375,7 +386,6 @@ export const createProperty = async (req: Request, res: Response) => {
 
     let picturePath = null;
     if (files?.picture && files.picture[0]) {
-      // Upload to Vercel Blob in production, use local path in development
       if (process.env.NODE_ENV === "production") {
         const { uploadToBlob } = await import("../utils/uploader");
         picturePath = await uploadToBlob(files.picture[0], "properties");
@@ -416,7 +426,6 @@ export const createProperty = async (req: Request, res: Response) => {
 
         const roomImgKey = `roomImg_${i}`;
         if (files && files[roomImgKey]) {
-          // Upload to Vercel Blob in production, use local path in development
           if (process.env.NODE_ENV === "production") {
             const { uploadToBlob } = await import("../utils/uploader");
             const imgPaths = await Promise.all(
