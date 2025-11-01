@@ -151,7 +151,7 @@ const createReservation = async (req, res) => {
             transaction: {
                 ...created,
                 nights,
-                orderNumber: `ORD-${created.id}-${new Date()
+                orderNumber: `ORD-${created.id}-${new Date(created.createdAt)
                     .toISOString()
                     .slice(0, 10)
                     .replace(/-/g, "")}`,
