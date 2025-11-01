@@ -1,11 +1,9 @@
 import { Request, Response } from "express";
-import path from "path";
-import fs from "fs/promises";
+import { uploadToBlob } from "../utils/uploader";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 
 export const uploadPaymentProof = async (req: Request, res: Response) => {
-  let fileToCleanup: string | null = null;
   try {
     const authUser = (req as any).user;
 
@@ -13,8 +11,6 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
 
     const transactionId = Number(req.body.transactionId);
     if (!Number.isInteger(transactionId) || transactionId <= 0) {
-      // jika ada file, di hapus
-      if (req.file?.path) fileToCleanup = path.join("public", req.file.path);
       return res.status(400).json({ error: "transactionId harus positif" });
     }
 
@@ -22,19 +18,13 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
     if (!file)
       return res.status(400).json({ error: "File bukti bayar harus diunggah" });
 
-    const relativePath = file.path;
-    const baseDir = process.env.NODE_ENV === "production" ? "/tmp" : "public";
-    fileToCleanup = path.join(baseDir, relativePath);
-
     const allowed = ["image/jpeg", "image/png"];
 
     if (!allowed.includes(file.mimetype)) {
-      await fs.unlink(fileToCleanup).catch(() => {});
       return res.status(400).json({ error: "File harus jpg atau png" });
     }
 
     if (file.size > 1_000_000) {
-      await fs.unlink(fileToCleanup).catch(() => {});
       return res.status(400).json({ error: "Ukuran file maksimal 1 MB" });
     }
 
@@ -44,21 +34,22 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
     });
 
     if (!transaction) {
-      await fs.unlink(fileToCleanup).catch(() => {});
       return res.status(404).json({ error: "Transaksi tidak ditemukan" });
     }
     if (transaction.userId !== authUser.id) {
-      await fs.unlink(fileToCleanup).catch(() => {});
       return res.status(403).json({
         error: "Anda tidak berhak mengunggah bukti untuk transaksi ini",
       });
     }
     if (transaction.status !== "WAITING_FOR_PAYMENT") {
-      await fs.unlink(fileToCleanup).catch(() => {});
       return res.status(409).json({
         error: "Status transaksi tidak valid untuk upload bukti bayar",
       });
     }
+
+    // Upload to Vercel Blob
+    const blobUrl = await uploadToBlob(file, "payments");
+
     const existing = await prisma.payment.findFirst({
       where: {
         transactionId: transaction.id,
@@ -74,7 +65,7 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
         where: { transactionId: transaction.id }, // UNIQUE
         update: {
           method: "TRANSFER",
-          paymentProof: relativePath,
+          paymentProof: blobUrl,
           paymentStatus: "PENDING",
           fraudStatus: "ACCEPT",
           paymentType: null,
@@ -85,7 +76,7 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
         create: {
           transactionId: transaction.id,
           method: "TRANSFER",
-          paymentProof: relativePath,
+          paymentProof: blobUrl,
           paymentStatus: "PENDING",
           fraudStatus: "ACCEPT",
           paymentType: null,
@@ -100,14 +91,6 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
         where: { id: transaction.id },
         data: { status: "WAITING_FOR_CONFIRMATION" },
       });
-
-      // setelah DB sukses, baru hapus file lama (kalau ada dan berbeda)
-      if (existing?.paymentProof && existing.paymentProof !== relativePath) {
-        const oldBaseDir =
-          process.env.NODE_ENV === "production" ? "/tmp" : "public";
-        const oldPath = path.join(oldBaseDir, existing.paymentProof);
-        fs.unlink(oldPath).catch(() => {});
-      }
     });
 
     return res.json({
@@ -115,7 +98,7 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
       payment: {
         method: "TRANSFER",
         status: "PENDING",
-        proofPath: relativePath,
+        proofPath: blobUrl,
       },
       transaction: {
         id: transaction.id,
@@ -123,9 +106,6 @@ export const uploadPaymentProof = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    if (fileToCleanup) {
-      await fs.unlink(fileToCleanup).catch(() => {});
-    }
     console.error("Upload Manual Error: ", error);
     console.error("Error stack: ", error.stack);
     console.error("Request body: ", req.body);
