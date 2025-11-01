@@ -200,7 +200,7 @@ export const createReservation = async (req: Request, res: Response) => {
       transaction: {
         ...created,
         nights,
-        orderNumber: `ORD-${created.id}-${created.createdAt.getTime()}`,
+        orderNumber: `ORD-${created.id}-${Date.now()}`,
         paymentDeadline,
       },
     });
