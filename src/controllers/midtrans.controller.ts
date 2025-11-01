@@ -43,7 +43,10 @@ export const createMidtransPayment = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Transaksi sudah dibayar" });
     }
 
-    const orderId = `ORD-${transaction.id}-${Date.now()}`;
+    const orderId = `ORD-${transaction.id}-${new Date()
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, "")}`;
     const itemName = `${transaction.roomType.property.name || "Property"} - ${
       transaction.roomType.roomName || "Room"
     }`;
